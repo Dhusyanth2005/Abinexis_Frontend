@@ -1,0 +1,19 @@
+
+:root {
+  /* Primary Brand Colors from Color Palette */
+  --primary-light-green: #D9ED92;
+  --primary-green: #B5E48C;
+  --primary-sage: #99D98C;
+  --primary-teal: #76C893;
+  --primary-mint: #52B69A;
+  --primary-turquoise: #34A0A4;
+  --primary-blue: #168AAD;
+  --primary-ocean: #1A759F;
+  --primary-navy: #1E6091;
+  --primary-deep-blue: #184E77;
+  
+  /* Brand Color Variants */
+  --brand-primary: #52B69A;
+  --brand-secondary: #34A0A4;
+  --brand-accent: #168AAD;
+}
