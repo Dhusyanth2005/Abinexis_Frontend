@@ -3,7 +3,7 @@ import { CreditCard, MapPin, User, ShoppingBag, Lock, Check, ChevronDown, Chevro
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'https://abinexis-backend.onrender.com';
 
 const CheckoutPage = () => {
   const { state } = useLocation();

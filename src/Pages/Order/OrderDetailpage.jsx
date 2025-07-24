@@ -19,7 +19,7 @@ const OrderDetailPage = () => {
     const fetchOrder = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:5000/api/orders/${id}`, {
+        const response = await axios.get(`https://abinexis-backend.onrender.com/api/orders/${id}`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },

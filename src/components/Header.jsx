@@ -85,7 +85,7 @@ const Header = () => {
       return;
     }
     try {
-      const response = await axios.get(`http://localhost:5000/api/products/search?query=${encodeURIComponent(query)}`);
+      const response = await axios.get(`https://abinexis-backend.onrender.com/api/products/search?query=${encodeURIComponent(query)}`);
       const { suggestions = [] } = response.data;
       // Sort suggestions alphabetically by display name
       const sortedSuggestions = [...suggestions].sort((a, b) => a.display.localeCompare(b.display));

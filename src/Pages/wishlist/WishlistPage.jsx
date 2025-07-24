@@ -3,7 +3,7 @@ import { Heart, Trash2, Star, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'https://abinexis-backend.onrender.com';
 
 const WishlistPage = () => {
   const [wishlistItems, setWishlistItems] = useState([]);

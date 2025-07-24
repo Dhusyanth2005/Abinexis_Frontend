@@ -3,7 +3,7 @@ import { Heart, ShoppingCart, Star, Minus, Plus, Truck, Shield, RotateCcw, Share
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'https://abinexis-backend.onrender.com';
 
 // Function to generate consistent button styles for all filters
 const getFilterStyles = () => ({

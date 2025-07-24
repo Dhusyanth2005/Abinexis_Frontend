@@ -53,7 +53,7 @@ const CartPage = () => {
   useEffect(() => {
     const fetchCart = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/cart', {
+        const response = await fetch('https://abinexis-backend.onrender.com/api/cart', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ const CartPage = () => {
     if (newQuantity < 1) return;
     try {
       const item = cartItems.find(item => item.id === id);
-      const response = await fetch('http://localhost:5000/api/cart/add', {
+      const response = await fetch('https://abinexis-backend.onrender.com/api/cart/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,7 +145,7 @@ const CartPage = () => {
   const removeItem = async (id) => {
     try {
       const item = cartItems.find(item => item.id === id);
-      const response = await fetch('http://localhost:5000/api/cart/remove', {
+      const response = await fetch('https://abinexis-backend.onrender.com/api/cart/remove', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

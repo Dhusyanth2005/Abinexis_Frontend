@@ -72,7 +72,7 @@ const ProfilePage = ({ onNavigateBack }) => {
         if (!token) {
           navigate('/auth'); // Redirect to login if no token
         }
-        const response = await axios.get('http://localhost:5000/api/auth/update', {
+        const response = await axios.get('https://abinexis-backend.onrender.com/api/auth/update', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setProfile({
@@ -115,7 +115,7 @@ const ProfilePage = ({ onNavigateBack }) => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        'http://localhost:5000/api/auth/update',
+        'https://abinexis-backend.onrender.com/api/auth/update',
         {
           firstName: tempProfile.firstName,
           lastName: tempProfile.lastName,
@@ -163,7 +163,7 @@ const ProfilePage = ({ onNavigateBack }) => {
       try {
         const token = localStorage.getItem('token');
         await axios.put(
-          'http://localhost:5000/api/auth/update',
+          'https://abinexis-backend.onrender.com/api/auth/update',
           { addresses: updatedAddresses },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -198,7 +198,7 @@ const ProfilePage = ({ onNavigateBack }) => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        'http://localhost:5000/api/auth/update',
+        'https://abinexis-backend.onrender.com/api/auth/update',
         { addresses: updatedAddresses },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -244,7 +244,7 @@ const ProfilePage = ({ onNavigateBack }) => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        'http://localhost:5000/api/auth/change-password',
+        'https://abinexis-backend.onrender.com/api/auth/change-password',
         {
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword
@@ -278,7 +278,7 @@ const ProfilePage = ({ onNavigateBack }) => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        'http://localhost:5000/api/auth/update',
+        'https://abinexis-backend.onrender.com/api/auth/update',
         { loginAlerts: updatedSettings.security.loginAlerts },
         { headers: { Authorization: `Bearer ${token}` } }
       );
