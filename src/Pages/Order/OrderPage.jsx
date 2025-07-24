@@ -144,7 +144,7 @@ const OrdersPage = () => {
             </div>
             <div className="flex items-center space-x-4">
               <Link
-                to="/products"
+                to="/"
                 className="flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors"
                 style={{ backgroundColor: 'var(--brand-primary)', color: 'white' }}
               >
