@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Truck, CheckCircle, Clock, Search, Filter, ChevronDown, Eye, MapPin, ArrowLeft, ShoppingCart, Phone, MessageCircle, X } from 'lucide-react';
+import { Package, Truck, CheckCircle, Clock, Search, Filter, ChevronDown, Eye, MapPin, ArrowLeft, ShoppingCart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -7,14 +7,10 @@ const OrdersPage = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [trackingPopup, setTrackingPopup] = useState(null);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
-
-  // Support contact number
-  const supportPhone = '+91 82480 38528';
 
   // Fetch user orders on component mount
   useEffect(() => {
@@ -103,21 +99,6 @@ const OrdersPage = () => {
       count: orders.filter((o) => o.orderStatus === 'cancelled').length,
     },
   ];
-
-  const handleTrackOrder = (order) => {
-    setTrackingPopup(order);
-  };
-
-  const handleWhatsAppMessage = (orderId) => {
-    const message = encodeURIComponent(
-      `Hi, I need help with my order ${orderId}. Could you please provide an update on the tracking status?`
-    );
-    window.open(`https://wa.me/${supportPhone.replace(/[^0-9]/g, '')}?text=${message}`, '_blank');
-  };
-
-  const handlePhoneCall = () => {
-    window.open(`tel:${supportPhone}`, '_self');
-  };
 
   const handleViewDetails = (orderId) => {
     navigate(`/order/${orderId}`);
@@ -316,24 +297,7 @@ const OrdersPage = () => {
                         <Eye className="w-4 h-4" />
                         <span className="text-sm">View Details</span>
                       </button>
-                      {order.orderStatus === 'delivered' && (
-                        <button
-                          className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                          style={{ backgroundColor: 'var(--brand-primary)', color: 'white' }}
-                        >
-                          Reorder
-                        </button>
-                      )}
                     </div>
-                    {order.orderStatus !== 'cancelled' && order.orderStatus !== 'processing' && (
-                      <button
-                        onClick={() => handleTrackOrder(order)}
-                        className="px-4 py-2 rounded-lg border transition-colors text-sm"
-                        style={{ borderColor: 'var(--brand-secondary)', color: 'var(--brand-secondary)' }}
-                      >
-                        Track Order
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
@@ -341,57 +305,6 @@ const OrdersPage = () => {
           )}
         </div>
       </div>
-
-      {/* Tracking Popup */}
-      {trackingPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-lg max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-white">Track Order</h3>
-              <button
-                onClick={() => setTrackingPopup(null)}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="mb-6">
-              <p className="text-gray-300 mb-2">
-                Order ID: <span className="font-medium">{trackingPopup._id}</span>
-              </p>
-              <p className="text-gray-300 mb-4">
-                Tracking:{' '}
-                <span className="font-medium">
-                  {trackingPopup.orderStatus === 'delivered' || trackingPopup.orderStatus === 'shipped'
-                    ? `TRK${trackingPopup._id.slice(-9)}`
-                    : 'Not available yet'}
-                </span>
-              </p>
-              <p className="text-gray-400 text-sm">Need help with your order? Contact our support team:</p>
-            </div>
-
-            <div className="space-y-3">
-              <button
-                onClick={() => handlePhoneCall()}
-                className="w-full flex items-center justify-center space-x-3 px-4 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <Phone className="w-5 h-5 text-green-400" />
-                <span className="text-white">Call Support</span>
-                <span className="text-gray-400 text-sm">{supportPhone}</span>
-              </button>
-
-              <button
-                onClick={() => handleWhatsAppMessage(trackingPopup._id)}
-                className="w-full flex items-center justify-center space-x-3 px-4 py-3 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
-              >
-                <MessageCircle className="w-5 h-5 text-white" />
-                <span className="text-white">Message on WhatsApp</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

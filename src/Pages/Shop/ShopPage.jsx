@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Heart, Star, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
 
 // Custom Range Slider Component
@@ -8,16 +9,32 @@ const RangeSlider = ({ min, max, value, onChange }) => {
   const [isDragging, setIsDragging] = useState(null);
   const sliderRef = useRef(null);
 
-  const handleMouseDown = (thumb) => (e) => {
+  // Get coordinates from either mouse or touch event
+  const getEventCoordinates = (e) => {
+    if (e.touches && e.touches.length > 0) {
+      return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+    }
+    if (e.changedTouches && e.changedTouches.length > 0) {
+      return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
+    }
+    return { clientX: e.clientX, clientY: e.clientY };
+  };
+
+  // Handle start of dragging (mouse or touch)
+  const handleStart = (thumb) => (e) => {
     e.preventDefault();
     setIsDragging(thumb);
   };
 
-  const handleMouseMove = (e) => {
+  // Handle dragging movement
+  const handleMove = (e) => {
     if (!isDragging || !sliderRef.current) return;
 
+    e.preventDefault(); // Prevent scrolling on mobile
+    
+    const { clientX } = getEventCoordinates(e);
     const rect = sliderRef.current.getBoundingClientRect();
-    const percentage = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const newValue = min + percentage * (max - min);
 
     if (isDragging === 'min') {
@@ -27,20 +44,57 @@ const RangeSlider = ({ min, max, value, onChange }) => {
     }
   };
 
-  const handleMouseUp = () => {
+  // Handle end of dragging
+  const handleEnd = () => {
     setIsDragging(null);
   };
 
+  // Add event listeners for both mouse and touch
   useEffect(() => {
     if (isDragging) {
+      // Add both mouse and touch event listeners
+      const handleMouseMove = (e) => handleMove(e);
+      const handleTouchMove = (e) => handleMove(e);
+      const handleMouseUp = () => handleEnd();
+      const handleTouchEnd = () => handleEnd();
+
+      // Mouse events
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
+      
+      // Touch events
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd);
+
       return () => {
+        // Clean up all event listeners
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
       };
     }
   }, [isDragging, value, min, max]);
+
+  // Handle slider track click/tap
+  const handleTrackClick = (e) => {
+    if (!sliderRef.current || isDragging) return;
+
+    const { clientX } = getEventCoordinates(e);
+    const rect = sliderRef.current.getBoundingClientRect();
+    const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const newValue = min + percentage * (max - min);
+
+    // Determine which thumb is closer and update accordingly
+    const distanceToMin = Math.abs(newValue - value[0]);
+    const distanceToMax = Math.abs(newValue - value[1]);
+
+    if (distanceToMin < distanceToMax) {
+      onChange([Math.min(newValue, value[1]), value[1]]);
+    } else {
+      onChange([value[0], Math.max(newValue, value[0])]);
+    }
+  };
 
   const minPercent = ((value[0] - min) / (max - min)) * 100;
   const maxPercent = ((value[1] - min) / (max - min)) * 100;
@@ -62,12 +116,18 @@ const RangeSlider = ({ min, max, value, onChange }) => {
       {/* Slider Track */}
       <div 
         ref={sliderRef}
-        className="relative h-2 bg-gray-700 rounded-full cursor-pointer"
-        style={{ userSelect: 'none' }}
+        className="relative h-3 sm:h-2 bg-gray-700 rounded-full cursor-pointer"
+        style={{ userSelect: 'none', touchAction: 'none' }}
+        onClick={handleTrackClick}
+        onTouchStart={(e) => {
+          // Prevent default to avoid conflicts
+          e.preventDefault();
+          handleTrackClick(e);
+        }}
       >
         {/* Active Range */}
         <div
-          className="absolute h-2 rounded-full"
+          className="absolute h-3 sm:h-2 rounded-full pointer-events-none"
           style={{
             left: `${minPercent}%`,
             width: `${maxPercent - minPercent}%`,
@@ -77,28 +137,32 @@ const RangeSlider = ({ min, max, value, onChange }) => {
 
         {/* Min Thumb */}
         <div
-          className={`absolute w-5 h-5 bg-white border-2 rounded-full cursor-grab transform -translate-x-1/2 -translate-y-1/2 top-1/2 transition-all hover:scale-110 ${
+          className={`absolute w-6 h-6 sm:w-5 sm:h-5 bg-white border-2 rounded-full cursor-grab transform -translate-x-1/2 -translate-y-1/2 top-1/2 transition-all hover:scale-110 z-10 ${
             isDragging === 'min' ? 'scale-125 cursor-grabbing' : ''
           }`}
           style={{
             left: `${minPercent}%`,
             borderColor: 'var(--brand-primary)',
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            touchAction: 'none',
           }}
-          onMouseDown={handleMouseDown('min')}
+          onMouseDown={handleStart('min')}
+          onTouchStart={handleStart('min')}
         />
 
         {/* Max Thumb */}
         <div
-          className={`absolute w-5 h-5 bg-white border-2 rounded-full cursor-grab transform -translate-x-1/2 -translate-y-1/2 top-1/2 transition-all hover:scale-110 ${
+          className={`absolute w-6 h-6 sm:w-5 sm:h-5 bg-white border-2 rounded-full cursor-grab transform -translate-x-1/2 -translate-y-1/2 top-1/2 transition-all hover:scale-110 z-10 ${
             isDragging === 'max' ? 'scale-125 cursor-grabbing' : ''
           }`}
           style={{
             left: `${maxPercent}%`,
             borderColor: 'var(--brand-primary)',
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            touchAction: 'none',
           }}
-          onMouseDown={handleMouseDown('max')}
+          onMouseDown={handleStart('max')}
+          onTouchStart={handleStart('max')}
         />
       </div>
 
@@ -463,6 +527,16 @@ const ShopPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white pt-32 pb-16">
+      <Helmet>
+        <title>Shop High-Quality Products Online - Best Deals</title>
+        <meta name="description" content="Discover a wide range of high-quality products across categories like Fashion, Electronics, and more. Shop now for great deals and fast shipping." />
+        <meta name="keywords" content="shop online, buy products online, best deals, high-quality products, fashion, electronics, kitchen, health, beauty, fitness" />
+        <meta property="og:title" content="Shop High-Quality Products Online" />
+        <meta property="og:description" content="Explore our collection of top-quality products with great deals and fast shipping. Shop now!" />
+        <meta property="og:image" content="/api/placeholder/200/200" />
+        <meta property="og:type" content="website" />
+        <meta name="robots" content="index, follow" />
+      </Helmet>
       <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex gap-8">
           {/* Sidebar */}

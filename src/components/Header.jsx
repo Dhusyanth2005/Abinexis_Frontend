@@ -10,6 +10,7 @@ const Header = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [cartCount, setCartCount] = useState(0); // State for cart item count
   const navigate = useNavigate();
 
   const categories = [
@@ -35,7 +36,7 @@ const Header = () => {
 
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+      const currentTime = Math.floor(Date.now() / 1000);
       if (payload.exp && payload.exp < currentTime) {
         localStorage.removeItem('token');
         setIsLoggedIn(false);
@@ -51,9 +52,36 @@ const Header = () => {
     }
   };
 
+  // Function to fetch cart item count
+  const fetchCartCount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setCartCount(0);
+        return;
+      }
+      const response = await axios.get('https://abinexis-backend.onrender.com/api/cart', {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.status === 200) {
+        const data = response.data;
+        const totalItems = data.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+        setCartCount(totalItems);
+      } else {
+        setCartCount(0);
+      }
+    } catch (error) {
+      console.error('Error fetching cart count:', error);
+      setCartCount(0);
+    }
+  };
+
   useEffect(() => {
-    // Check token on mount
     checkTokenExpiration();
+    fetchCartCount(); // Fetch cart count on mount
 
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
     const handleClickOutside = (event) => {
@@ -71,14 +99,18 @@ const Header = () => {
     };
   }, []);
 
-  // Check token expiration when profile dropdown is toggled
   useEffect(() => {
     if (isProfileOpen) {
       checkTokenExpiration();
     }
   }, [isProfileOpen]);
 
-  // Fetch suggestions from backend API
+  // Fetch cart count periodically or when cart might change
+  useEffect(() => {
+    const intervalId = setInterval(fetchCartCount, 30000); // Refresh every 30 seconds
+    return () => clearInterval(intervalId);
+  }, []);
+
   const fetchSuggestions = async (query) => {
     if (!query.trim()) {
       setSuggestions([]);
@@ -87,7 +119,6 @@ const Header = () => {
     try {
       const response = await axios.get(`https://abinexis-backend.onrender.com/api/products/search?query=${encodeURIComponent(query)}`);
       const { suggestions = [] } = response.data;
-      // Sort suggestions alphabetically by display name
       const sortedSuggestions = [...suggestions].sort((a, b) => a.display.localeCompare(b.display));
       setSuggestions(sortedSuggestions);
     } catch (error) {
@@ -96,32 +127,83 @@ const Header = () => {
     }
   };
 
-  // Handle search input and fetch suggestions
   const handleSearchInput = (e) => {
     const query = e.target.value.toLowerCase();
     setSearchQuery(query);
     fetchSuggestions(query);
   };
 
-  // Handle search submission
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     if ((e.key === 'Enter' || e.type === 'click') && searchQuery.trim()) {
       const query = searchQuery.trim().toLowerCase();
-      const matchedCategory = categories.find((category) =>
-        category.toLowerCase().includes(query)
-      );
-      if (matchedCategory) {
-        navigate(`/shop/${matchedCategory.toLowerCase()}`);
-      } else {
-        navigate(`/search?query=${encodeURIComponent(query)}`);
+      try {
+        const response = await axios.get(`https://abinexis-backend.onrender.com/api/products/search?query=${encodeURIComponent(query)}`);
+        const { suggestions = [] } = response.data;
+
+        // Check if query matches a category exactly
+        const matchedCategory = categories.find((category) =>
+          category.toLowerCase() === query
+        );
+        if (matchedCategory) {
+          navigate(`/shop/${matchedCategory.toLowerCase()}`);
+          setSearchQuery('');
+          setSuggestions([]);
+          setIsMenuOpen(false);
+          return;
+        }
+
+        // If multiple suggestions (e.g., "headphones"), navigate to category
+        if (suggestions.length > 1) {
+          const uniqueCategories = [...new Set(suggestions.map(s => s.category.toLowerCase()))];
+          if (uniqueCategories.length === 1) {
+            navigate(`/shop/${uniqueCategories[0]}`);
+          } else {
+            // Fallback to first category if multiple categories
+            navigate(`/shop/${suggestions[0].category.toLowerCase()}`);
+          }
+          setSearchQuery('');
+          setSuggestions([]);
+          setIsMenuOpen(false);
+          return;
+        }
+
+        // If a single suggestion is found, navigate to product
+        if (suggestions.length === 1) {
+          const suggestion = suggestions[0];
+          navigate(`/shop/${suggestion.category.toLowerCase()}/${suggestion._id}`);
+          setSearchQuery('');
+          setSuggestions([]);
+          setIsMenuOpen(false);
+          return;
+        }
+
+        // Check if query is a substring of any category (e.g., "laptop" for "realme laptop")
+        const relatedCategory = categories.find((category) =>
+          category.toLowerCase().includes(query)
+        );
+        if (relatedCategory) {
+          navigate(`/shop/${relatedCategory.toLowerCase()}`);
+          setSearchQuery('');
+          setSuggestions([]);
+          setIsMenuOpen(false);
+          return;
+        }
+
+        // No match found, navigate to product not found page
+        navigate('/product-not-found', { state: { query } });
+        setSearchQuery('');
+        setSuggestions([]);
+        setIsMenuOpen(false);
+      } catch (error) {
+        console.error('Error fetching search results:', error);
+        navigate('/product-not-found', { state: { query, error: error.message } });
+        setSearchQuery('');
+        setSuggestions([]);
+        setIsMenuOpen(false);
       }
-      setSearchQuery('');
-      setSuggestions([]);
-      setIsMenuOpen(false);
     }
   };
 
-  // Handle suggestion click
   const handleSuggestionClick = (suggestion) => {
     navigate(`/shop/${suggestion.category.toLowerCase()}/${suggestion._id}`);
     setSearchQuery('');
@@ -129,11 +211,11 @@ const Header = () => {
     setIsMenuOpen(false);
   };
 
-  // Handle logout
   const handleLogout = () => {
     localStorage.removeItem('token');
     setIsLoggedIn(false);
     setIsProfileOpen(false);
+    setCartCount(0); // Reset cart count on logout
     navigate('/auth');
   };
 
@@ -162,7 +244,7 @@ const Header = () => {
       `}</style>
 
       <header className="fixed top-0 w-full z-50 bg-gray-900 border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm belief: px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center space-x-2 group cursor-pointer">
               <div className="w-10 h-10 brand-gradient rounded-lg flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
@@ -234,7 +316,11 @@ const Header = () => {
                 </div>
                 <Link to="/cart" className="relative">
                   <ShoppingCart className="w-6 h-6 text-gray-300 brand-hover cursor-pointer transition-colors duration-300" />
-                  <span className="absolute -top-2 -right-2 w-5 h-5 brand-gradient rounded-full flex items-center justify-center text-xs text-white font-bold">3</span>
+                  {cartCount > 0 && (
+                    <span className="absolute -top-2 -right-2 w-5 h-5 brand-gradient rounded-full flex items-center justify-center text-xs text-white font-bold">
+                      {cartCount}
+                    </span>
+                  )}
                 </Link>
                 <button
                   className="md:hidden text-gray-300 hover:text-white bg-transparent border-none cursor-pointer"

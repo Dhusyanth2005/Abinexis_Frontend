@@ -15,6 +15,8 @@ import PrivacyPolicy from './Pages/ServicesPage/PrivacyPolicy';
 import ShippingInformation from './Pages/ServicesPage/ShippingInformation';
 import ReturnRefundPolicy from './Pages/ServicesPage/ReturnRefundPolicy';
 import FAQ from './Pages/ServicesPage/FAQ';
+import { HelmetProvider } from 'react-helmet-async';
+import ProductNotFound from './components/ProductNotFound';
 
 // ProtectedRoute component to handle authentication
 function ProtectedRoute({ element }) {
@@ -25,6 +27,7 @@ function ProtectedRoute({ element }) {
 function App() {
   return (
     <div className="App">
+      <HelmetProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<AuthPage />} />
@@ -43,8 +46,11 @@ function App() {
           <Route path="/shipping" element={<ShippingInformation />} />
           <Route path="/returns" element={<ReturnRefundPolicy />} />
           <Route path="/faq" element={<FAQ />} />
+          <Route path="/product-not-found" element={<ProductNotFound />} />
+          {/* Redirect to homepage for any unmatched routes */}
         </Routes>
       </BrowserRouter>
+      </HelmetProvider>
     </div>
   );
 }
