@@ -105,11 +105,11 @@ const RangeSlider = ({ min, max, value, onChange }) => {
       <div className="flex justify-between items-center mb-4">
         <div className="text-sm text-gray-300">
           <span className="text-gray-400">₹</span>
-          <span className="font-medium">{Math.round(value[0])}</span>
+          <span className="font-medium">{Math.round(value[0]).toLocaleString('en-IN')}</span>
         </div>
         <div className="text-sm text-gray-300">
           <span className="text-gray-400">₹</span>
-          <span className="font-medium">{Math.round(value[1])}</span>
+          <span className="font-medium">{Math.round(value[1]).toLocaleString('en-IN')}</span>
         </div>
       </div>
 
@@ -120,7 +120,6 @@ const RangeSlider = ({ min, max, value, onChange }) => {
         style={{ userSelect: 'none', touchAction: 'none' }}
         onClick={handleTrackClick}
         onTouchStart={(e) => {
-          // Prevent default to avoid conflicts
           e.preventDefault();
           handleTrackClick(e);
         }}
@@ -168,8 +167,8 @@ const RangeSlider = ({ min, max, value, onChange }) => {
 
       {/* Min/Max Labels */}
       <div className="flex justify-between mt-2">
-        <span className="text-xs text-gray-500">₹{min}</span>
-        <span className="text-xs text-gray-500">₹{max}</span>
+        <span className="text-xs text-gray-500">₹{min.toLocaleString('en-IN')}</span>
+        <span className="text-xs text-gray-500">₹{max.toLocaleString('en-IN')}</span>
       </div>
     </div>
   );
@@ -181,7 +180,7 @@ const ShopPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedSubCategory, setSelectedSubCategory] = useState('');
   const [selectedBrands, setSelectedBrands] = useState([]);
-  const [priceRange, setPriceRange] = useState([10, 10000]);
+  const [priceRange, setPriceRange] = useState([10, 1000000]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -259,7 +258,7 @@ const ShopPage = () => {
       setSelectedCategory(newCategory);
       setSelectedSubCategory('');
       setSelectedBrands([]);
-      setPriceRange([10, 10000]);
+      setPriceRange([10, 1000000]);
       setCurrentPage(1);
       setInitialLoad(true);
     }
@@ -375,29 +374,29 @@ const ShopPage = () => {
   // Quick price filter handlers
   const handleQuickPriceFilter = (filterType) => {
     switch (filterType) {
-      case 'under50':
-        setPriceRange([10, 50]);
-        break;
-      case 'under100':
-        setPriceRange([10, 100]);
-        break;
-      case 'under200':
-        setPriceRange([10, 200]);
-        break;
       case 'under500':
         setPriceRange([10, 500]);
         break;
-      case 'above100':
-        setPriceRange([100, 10000]);
+      case 'under1000':
+        setPriceRange([10, 1000]);
         break;
-      case 'above500':
-        setPriceRange([500, 10000]);
+      case 'under5000':
+        setPriceRange([10, 5000]);
+        break;
+      case 'under10000':
+        setPriceRange([10, 10000]);
         break;
       case 'above1000':
-        setPriceRange([1000, 10000]);
+        setPriceRange([1000, 1000000]);
         break;
-      case 'above2000':
-        setPriceRange([2000, 10000]);
+      case 'above5000':
+        setPriceRange([5000, 1000000]);
+        break;
+      case 'above10000':
+        setPriceRange([10000, 1000000]);
+        break;
+      case 'above50000':
+        setPriceRange([50000, 1000000]);
         break;
       default:
         break;
@@ -483,14 +482,14 @@ const ShopPage = () => {
   const clearFilters = () => {
     setSelectedSubCategory('');
     setSelectedBrands([]);
-    setPriceRange([10, 10000]);
+    setPriceRange([10, 1000000]);
   };
 
   const hasFiltersApplied = () => {
     return selectedSubCategory !== '' || 
            selectedBrands.length > 0 || 
            priceRange[0] !== 10 || 
-           priceRange[1] !== 10000;
+           priceRange[1] !== 1000000;
   };
 
   const totalPages = getTotalPages();
@@ -554,7 +553,6 @@ const ShopPage = () => {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            {/* Rest of the sidebar content remains unchanged */}
             <div className="space-y-6">
               <button
                 onClick={clearFilters}
@@ -654,52 +652,52 @@ const ShopPage = () => {
                 <div className="mt-4 space-y-2">
                   <div className="grid grid-cols-2 gap-2">
                     <button
-                      onClick={() => handleQuickPriceFilter('under50')}
-                      className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
-                    >
-                      Under ₹50
-                    </button>
-                    <button
-                      onClick={() => handleQuickPriceFilter('under100')}
-                      className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
-                    >
-                      Under ₹100
-                    </button>
-                    <button
-                      onClick={() => handleQuickPriceFilter('under200')}
-                      className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
-                    >
-                      Under ₹200
-                    </button>
-                    <button
                       onClick={() => handleQuickPriceFilter('under500')}
                       className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
                     >
                       Under ₹500
                     </button>
                     <button
-                      onClick={() => handleQuickPriceFilter('above100')}
+                      onClick={() => handleQuickPriceFilter('under1000')}
                       className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
                     >
-                      Above ₹100
+                      Under ₹1,000
                     </button>
                     <button
-                      onClick={() => handleQuickPriceFilter('above500')}
+                      onClick={() => handleQuickPriceFilter('under5000')}
                       className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
                     >
-                      Above ₹500
+                      Under ₹5,000
+                    </button>
+                    <button
+                      onClick={() => handleQuickPriceFilter('under10000')}
+                      className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
+                    >
+                      Under ₹10,000
                     </button>
                     <button
                       onClick={() => handleQuickPriceFilter('above1000')}
                       className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
                     >
-                      Above ₹1000
+                      Above ₹1,000
                     </button>
                     <button
-                      onClick={() => handleQuickPriceFilter('above2000')}
+                      onClick={() => handleQuickPriceFilter('above5000')}
                       className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
                     >
-                      Above ₹2000
+                      Above ₹5,000
+                    </button>
+                    <button
+                      onClick={() => handleQuickPriceFilter('above10000')}
+                      className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
+                    >
+                      Above ₹10,000
+                    </button>
+                    <button
+                      onClick={() => handleQuickPriceFilter('above50000')}
+                      className="px-3 py-2 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded transition-colors"
+                    >
+                      Above ₹50,000
                     </button>
                   </div>
                 </div>
@@ -797,11 +795,11 @@ const ShopPage = () => {
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
                               <span className="text-lg font-bold text-white">
-                                ₹{product.displayPrice}
+                                ₹{product.displayPrice.toLocaleString('en-IN')}
                               </span>
                               {product.discount > 0 && (
                                 <span className="text-sm text-gray-400 line-through">
-                                  ₹{product.originalPrice}
+                                  ₹{product.originalPrice.toLocaleString('en-IN')}
                                 </span>
                               )}
                             </div>

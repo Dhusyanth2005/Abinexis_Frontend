@@ -32,7 +32,7 @@ const Homepage = () => {
     <>
       <Helmet>
         {/* Page Title */}
-        <title>Best AI Dropshipping Platform | Abinexis is an AI-powered dropshipping platform offering smart automation,Ai dropshipping platform,E-commerce automation,dropshipping software,Smart order fulfillment,etc..</title>
+        <title>Best AI Dropshipping Platform</title>
 
         {/* Meta Description */}
         <meta
