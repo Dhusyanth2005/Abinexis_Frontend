@@ -644,7 +644,7 @@ const ShopPage = () => {
                 <div className="px-2">
                   <RangeSlider
                     min={10}
-                    max={10000}
+                    max={1000000}
                     value={priceRange}
                     onChange={setPriceRange}
                   />
