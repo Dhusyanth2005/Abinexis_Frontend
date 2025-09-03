@@ -16,8 +16,11 @@
     "lucide-react": "^0.525.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-easy-swipe": "^0.0.23",
     "react-helmet-async": "^2.0.5",
     "react-router-dom": "^7.6.3",
+    "react-swipeable": "^6.2.2",
+    "react-toastify": "^11.0.5",
     "tailwindcss": "^4.1.11"
   },
   "devDependencies": {

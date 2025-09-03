@@ -278,7 +278,7 @@ const HeroSection = () => {
   if (isLoading) {
     return (
       <div className="bg-gray-900 h-[70vh] flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#52B69A]"></div>
       </div>
     );
   }

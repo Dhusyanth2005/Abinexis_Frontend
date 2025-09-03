@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Heart, ShoppingCart, Star, Minus, Plus, Truck, Shield, RotateCcw, Share2, ChevronRight, Send, Edit2, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Heart, ShoppingCart, Star, Minus, Plus, Truck, Headphones, RotateCcw, Share2, ChevronRight, Send, Edit2, Trash2, ChevronLeft } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import axios from 'axios';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const API_URL = 'https://abinexis-backend.onrender.com';
 
@@ -37,7 +39,36 @@ const ProductPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [currentTranslate, setCurrentTranslate] = useState(0);
+  const swiperRef = useRef(null);
+  const lastUpdateTime = useRef(0);
 
+  // Add this function in the component body, before the return statement
+const handleShareProduct = async () => {
+  const shareUrl = window.location.href;
+  const shareData = {
+    title: product.name,
+    text: `Check out ${product.name} on our store!`,
+    url: shareUrl,
+  };
+
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+      
+    } else {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('Product link copied to clipboard!', { theme: 'dark' });
+    }
+  } catch (err) {
+    console.error('Error sharing product:', err);
+    toast.error('Failed to share product', { theme: 'dark' });
+  }
+};
   // Get current user ID from token
   const getCurrentUserId = () => {
     const token = localStorage.getItem('token');
@@ -236,8 +267,8 @@ const ProductPage = () => {
   // Toggle wishlist status
   const handleToggleWishlist = async () => {
     if (!currentUserId) {
-      alert('Please log in to add to wishlist');
-      navigate('/auth');
+      toast.error('Please log in to add to wishlist', { theme: 'dark' });
+      setTimeout(() => navigate('/auth'), 2500);
       return;
     }
     try {
@@ -246,17 +277,17 @@ const ProductPage = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
         setIsWishlisted(false);
-        alert('Product removed from wishlist!');
+        toast.success('Product removed from wishlist!', { theme: 'dark' });
       } else {
         await axios.post(`${API_URL}/api/wishlist/${productid}`, {}, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
         setIsWishlisted(true);
-        alert('Product added to wishlist!');
+        toast.success('Product added to wishlist!', { theme: 'dark' });
       }
     } catch (err) {
       console.error('Error toggling wishlist:', err);
-      alert(err.response?.data?.message || 'Error updating wishlist');
+      toast.error(err.response?.data?.message || 'Error updating wishlist', { theme: 'dark' });
     }
   };
 
@@ -270,10 +301,12 @@ const ProductPage = () => {
 
   const handleAddToCart = async () => {
     if (!currentUserId) {
-      alert('Please log in to add to cart');
-      navigate('/auth');
+      toast.error('Please log in to add to cart', { theme: 'dark' });
+      setTimeout(() => navigate('/auth'), 2500);
       return;
     }
+    if (isAddingToCart) return;
+    setIsAddingToCart(true);
     try {
       const response = await axios.post(
         `${API_URL}/api/cart/add`,
@@ -290,17 +323,19 @@ const ProductPage = () => {
         }
       );
       console.log('Added to cart:', response.data);
-      alert('Product added to cart successfully!');
+      toast.success('Product added to cart successfully!', { theme: 'dark' });
     } catch (err) {
       console.error('Error adding to cart:', err);
-      alert(err.response?.data?.message || 'Error adding to cart');
+      toast.error(err.response?.data?.message || 'Error adding to cart', { theme: 'dark' });
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 
   const handleBuyNow = () => {
     if (!currentUserId) {
-      alert('Please log in to proceed to checkout');
-      navigate('/auth');
+      toast.error('Please log in to proceed to checkout', { theme: 'dark' });
+      setTimeout(() => navigate('/auth'), 2500);
       return;
     }
     const productDetails = {
@@ -321,19 +356,20 @@ const ProductPage = () => {
     }));
   };
 
-  // Handle review submission (create or update)
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
     if (!currentUserId) {
-      alert('Please log in to submit a review');
-      navigate('/auth');
+      toast.error('Please log in to submit a review', { theme: 'dark' });
+      setTimeout(() => navigate('/auth'), 2500);
       return;
     }
+    if (isSubmittingReview) return;
     if (!newReview.rating || newReview.rating < 1 || newReview.rating > 5) {
-      alert('Please select a rating between 1 and 5 stars');
+      toast.error('Please select a rating between 1 and 5 stars', { theme: 'dark' });
       return;
     }
 
+    setIsSubmittingReview(true);
     const formData = new FormData();
     formData.append('rating', newReview.rating);
     formData.append('comment', newReview.comment);
@@ -349,7 +385,7 @@ const ProductPage = () => {
           },
         });
         setReviews(reviews.map(r => (r._id === editingReviewId ? response.data : r)));
-        alert('Review updated successfully!');
+        toast.success('Review updated successfully!', { theme: 'dark' });
       } else {
         formData.append('productId', productid);
         response = await axios.post(`${API_URL}/api/reviews`, formData, {
@@ -359,7 +395,7 @@ const ProductPage = () => {
           },
         });
         setReviews([...reviews, response.data]);
-        alert('Review submitted successfully!');
+        toast.success('Review submitted successfully!', { theme: 'dark' });
       }
       setNewReview({ rating: 0, comment: '' });
       setReviewImages([]);
@@ -367,15 +403,16 @@ const ProductPage = () => {
       setEditingReviewId(null);
     } catch (err) {
       console.error('Error submitting review:', err);
-      alert(err.response?.data?.message || 'Error submitting review');
+      toast.error(err.response?.data?.message || 'Error submitting review', { theme: 'dark' });
+    } finally {
+      setIsSubmittingReview(false);
     }
   };
 
-  // Handle edit review
   const handleEditReview = (review) => {
     if (!currentUserId) {
-      alert('Please log in to edit a review');
-      navigate('/auth');
+      toast.error('Please log in to edit a review', { theme: 'dark' });
+      setTimeout(() => navigate('/auth'), 2500);
       return;
     }
     setNewReview({ rating: review.rating, comment: review.comment });
@@ -384,39 +421,74 @@ const ProductPage = () => {
     setShowReviewForm(true);
   };
 
-  // Handle delete review
   const handleDeleteReview = async (reviewId) => {
     if (!currentUserId) {
-      alert('Please log in to delete a review');
-      navigate('/auth');
+      toast.error('Please log in to delete a review', { theme: 'dark' });
+      setTimeout(() => navigate('/auth'), 2500);
       return;
     }
-    if (!window.confirm('Are you sure you want to delete this review?')) return;
     try {
       console.log(`Sending DELETE request for review ID: ${reviewId}`);
       await axios.delete(`${API_URL}/api/reviews/${reviewId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
       setReviews(reviews.filter(r => r._id !== reviewId));
-      alert('Review deleted successfully!');
+      toast.success('Review deleted successfully!', { theme: 'dark' });
     } catch (err) {
       console.error('Error deleting review:', err);
-      alert(err.response?.data?.message || 'Error deleting review. Please try again.');
+      toast.error(err.response?.data?.message || 'Error deleting review', { theme: 'dark' });
     }
   };
 
-  // Handle image selection for review
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     setReviewImages(files);
   };
 
-  // Handle rating selection
   const handleRatingChange = (rating) => {
     setNewReview(prev => ({ ...prev, rating }));
   };
 
-  // Calculate price details
+  // Swiper handlers
+  const handlePrevImage = () => {
+    setSelectedImage(prev => (prev === 0 ? productImages.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = () => {
+    setSelectedImage(prev => (prev === productImages.length - 1 ? 0 : prev + 1));
+  };
+
+  const handleDragStart = (e) => {
+    if (!swiperRef.current) return;
+    e.preventDefault();
+    setIsDragging(true);
+    setStartX(e.type === 'mousedown' ? e.pageX : e.touches[0].pageX);
+    setCurrentTranslate(0);
+  };
+
+  const handleDragMove = useCallback((e) => {
+    if (!isDragging || !swiperRef.current) return;
+    const now = performance.now();
+    if (now - lastUpdateTime.current < 16) return; // Throttle to ~60fps
+    lastUpdateTime.current = now;
+    const currentX = e.type === 'mousemove' ? e.pageX : e.touches[0].pageX;
+    const diff = currentX - startX;
+    setCurrentTranslate(diff);
+  }, [isDragging, startX]);
+
+  const handleDragEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    if (Math.abs(currentTranslate) > 50) { // Lowered threshold for better responsiveness
+      if (currentTranslate > 0) {
+        handlePrevImage();
+      } else {
+        handleNextImage();
+      }
+    }
+    setCurrentTranslate(0);
+  };
+
   const calculatePriceDetails = () => {
     if (!product || !product.filters) return { effectivePrice: 0, originalPrice: 0, discount: 0 };
 
@@ -454,7 +526,6 @@ const ProductPage = () => {
     };
   };
 
-  // Calculate cumulative rating
   const cumulativeRating = reviews.length > 0
     ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
     : 0;
@@ -467,7 +538,11 @@ const ProductPage = () => {
     );
   }
   if (loading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-950 text-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--brand-primary)]"></div>
+      </div>
+    );
   }
 
   if (error) {
@@ -478,7 +553,7 @@ const ProductPage = () => {
     return <div className="text-center mt-10">Product not found</div>;
   }
 
-  const productImages = product.images || [
+  const productImages = product.images && product.images.length > 0 ? product.images : [
     'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=600&fit=crop&crop=center',
     'https://images.unsplash.com/photo-1503341504253-dff4815485f1?w=600&h=600&fit=crop&crop=center',
     'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=600&h=600&fit=crop&crop=center',
@@ -500,6 +575,18 @@ const ProductPage = () => {
         <meta name="robots" content="index, follow" />
       </Helmet>
       <div className="bg-gray-950 min-h-screen text-white pt-30">
+        <ToastContainer
+          position="top-right"
+          autoClose={2500}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="dark"
+        />
         <nav className="px-4 py-3 border-b border-gray-800">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center space-x-2 text-sm text-gray-400">
@@ -529,12 +616,43 @@ const ProductPage = () => {
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="grid lg:grid-cols-2 gap-12">
             <div className="space-y-4">
-              <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800">
-                <img
-                  src={productImages[selectedImage] || 'https://via.placeholder.com/600'}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
+              <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800 select-none" style={{ touchAction: 'pan-y' }}>
+                <div
+                  ref={swiperRef}
+                  className="flex w-full h-full transition-transform duration-300 ease-out will-change-transform"
+                  style={{ transform: `translateX(-${selectedImage * 100}%)` }}
+                  onMouseDown={handleDragStart}
+                  onMouseMove={handleDragMove}
+                  onMouseUp={handleDragEnd}
+                  onMouseLeave={handleDragEnd}
+                  onTouchStart={handleDragStart}
+                  onTouchMove={handleDragMove}
+                  onTouchEnd={handleDragEnd}
+                >
+                  {productImages.map((image, index) => (
+                    <div key={index} className="min-w-full h-full">
+                      <img
+                        src={image || 'https://via.placeholder.com/600'}
+                        alt={`${product.name} ${index + 1}`}
+                        className="w-full h-full object-cover select-none"
+                        style={{ transform: `translateX(${isDragging ? currentTranslate + 'px' : '0'})` }}
+                        draggable="false"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={handlePrevImage}
+                  className="absolute top-1/2 left-4 transform -translate-y-1/2 p-2 rounded-full bg-gray-900/80 backdrop-blur-sm hover:bg-gray-800 transition-colors"
+                >
+                  <ChevronLeft size={24} className="text-gray-100" />
+                </button>
+                <button
+                  onClick={handleNextImage}
+                  className="absolute top-1/2 right-4 transform -translate-y-1/2 p-2 rounded-full bg-gray-900/80 backdrop-blur-sm hover:bg-gray-800 transition-colors"
+                >
+                  <ChevronRight size={24} className="text-gray-100" />
+                </button>
                 <button
                   onClick={handleToggleWishlist}
                   className="absolute top-4 right-4 p-2 rounded-full bg-gray-900/80 backdrop-blur-sm hover:bg-gray-800 transition-colors"
@@ -669,18 +787,35 @@ const ProductPage = () => {
                   </button>
                   <button
                     onClick={handleAddToCart}
-                    className="w-full border border-[var(--brand-primary)] text-[var(--brand-primary)] py-3 rounded-lg font-semibold hover:bg-[var(--brand-primary)]/10 transition-colors flex items-center justify-center space-x-2"
+                    disabled={isAddingToCart}
+                    className={`w-full border border-[var(--brand-primary)] text-[var(--brand-primary)] py-3 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 ${
+                      isAddingToCart
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'hover:bg-[var(--brand-primary)]/10'
+                    }`}
                   >
-                    <ShoppingCart size={20} />
-                    <span>Add to Cart</span>
+                    {isAddingToCart ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--brand-primary)]"></div>
+                        <span>Adding...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart size={20} />
+                        <span>Add to Cart</span>
+                      </>
+                    )}
                   </button>
                 </div>
               )}
 
-              <button className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors">
-                <Share2 size={20} />
-                <span>Share this product</span>
-              </button>
+              <button
+                  onClick={handleShareProduct}
+                  className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <Share2 size={20} />
+                  <span>Share this product</span>
+                </button>
 
               <div className="border-t border-gray-800 pt-6">
                 <div className="grid grid-cols-3 gap-4">
@@ -693,8 +828,8 @@ const ProductPage = () => {
                     <p className="text-sm text-gray-400">30-Day Returns</p>
                   </div>
                   <div className="text-center">
-                    <Shield size={24} className="mx-auto mb-2 text-[var(--brand-primary)]" />
-                    <p className="text-sm text-gray-400">2-Year Warranty</p>
+                    <Headphones size={24} className="mx-auto mb-2 text-[var(--brand-primary)]" />
+                    <p className="text-sm text-gray-400">24/7 Support</p>
                   </div>
                 </div>
               </div>
@@ -738,8 +873,8 @@ const ProductPage = () => {
                   <button
                     onClick={() => {
                       if (!currentUserId) {
-                        alert('Please log in to add a review');
-                        navigate('/auth');
+                        toast.error('Please log in to add a review', { theme: 'dark' });
+                        setTimeout(() => navigate('/auth'), 2500);
                         return;
                       }
                       setShowReviewForm(true);
@@ -785,10 +920,24 @@ const ProductPage = () => {
                         <div className="flex space-x-2">
                           <button
                             type="submit"
-                            className="flex items-center space-x-2 bg-[var(--brand-primary)] text-gray-900 py-2 px-4 rounded-lg font-semibold hover:bg-[var(--primary-mint)] transition-colors"
+                            disabled={isSubmittingReview}
+                            className={`flex items-center space-x-2 bg-[var(--brand-primary)] text-gray-900 py-2 px-4 rounded-lg font-semibold transition-colors ${
+                              isSubmittingReview
+                                ? 'opacity-50 cursor-not-allowed'
+                                : 'hover:bg-[var(--primary-mint)]'
+                            }`}
                           >
-                            <Send size={20} />
-                            <span>{editingReviewId ? 'Update Review' : 'Submit Review'}</span>
+                            {isSubmittingReview ? (
+                              <>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--brand-primary)]"></div>
+                                <span>{editingReviewId ? 'Updating...' : 'Submitting...'}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Send size={20} />
+                                <span>{editingReviewId ? 'Update Review' : 'Submit Review'}</span>
+                              </>
+                            )}
                           </button>
                           <button
                             type="button"

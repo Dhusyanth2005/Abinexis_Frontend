@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Star, Clock, ShoppingCart, Tag, Zap } from 'lucide-react';
+import { Star, Clock, ShoppingCart, Zap } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,10 +9,11 @@ const TodayOfferShow = () => {
   const [timeLeft, setTimeLeft] = useState({
     hours: 23,
     minutes: 45,
-    seconds: 30
+    seconds: 30,
   });
   const [todayOffers, setTodayOffers] = useState([]);
   const [priceDetailsMap, setPriceDetailsMap] = useState({});
+  const [reviewsMap, setReviewsMap] = useState({}); // Store reviews for each product
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ const TodayOfferShow = () => {
       setLoading(true);
       const response = await axios.get(`${API_URL}/api/homepage`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        params: { populate: 'todayOffers' }
+        params: { populate: 'todayOffers' },
       });
       const offers = response.data.todayOffers || [];
       setTodayOffers(offers);
@@ -53,51 +54,98 @@ const TodayOfferShow = () => {
     }
   }, []);
 
-  // Fetch price details for all offers
-  const fetchPriceDetails = useCallback(async (productId) => {
-    try {
-      const initialFilters = {};
-      const product = todayOffers.find(p => p._id === productId);
-      product?.filters?.forEach(filter => {
-        if (filter.values && filter.values.length > 0) {
-          initialFilters[filter.name] = filter.values[0];
+  // Fetch price details for a product
+  const fetchPriceDetails = useCallback(
+    async (productId) => {
+      try {
+        const initialFilters = {};
+        const product = todayOffers.find(p => p._id === productId);
+        product?.filters?.forEach(filter => {
+          if (filter.values && filter.values.length > 0) {
+            initialFilters[filter.name] = filter.values[0];
+          }
+        });
+        const response = await axios.get(
+          `${API_URL}/api/products/${productId}/price-details`,
+          {
+            params: { selectedFilters: JSON.stringify(initialFilters) },
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          }
+        );
+        return { id: productId, ...response.data };
+      } catch (err) {
+        console.error(`Error fetching price details for ${productId}:`, err);
+        return { id: productId, effectivePrice: 0, normalPrice: 0 };
+      }
+    },
+    [todayOffers]
+  );
+
+  // Fetch reviews for a product
+  const fetchReviews = useCallback(
+    async (productId) => {
+      try {
+        const headers = {};
+        const token = localStorage.getItem('token');
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
         }
-      });
-      const response = await axios.get(
-        `${API_URL}/api/products/${productId}/price-details`,
-        {
-          params: { selectedFilters: JSON.stringify(initialFilters) },
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-        }
-      );
-      return { id: productId, ...response.data };
-    } catch (err) {
-      console.error(`Error fetching price details for ${productId}:`, err);
-      return { id: productId, effectivePrice: 0, normalPrice: 0 };
-    }
-  }, [todayOffers]);
+        const response = await axios.get(`${API_URL}/api/reviews/${productId}`, { headers });
+        const reviews = response.data.filter(review => review.product.toString() === productId);
+        return { id: productId, reviews };
+      } catch (err) {
+        console.error(`Error fetching reviews for ${productId}:`, err);
+        return { id: productId, reviews: [] };
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     fetchTodayOffers();
   }, [fetchTodayOffers]);
 
+  // Fetch price details and reviews for all offers
   useEffect(() => {
     if (todayOffers.length > 0) {
-      const fetchAllPriceDetails = async () => {
+      const fetchAllPriceDetailsAndReviews = async () => {
+        // Fetch price details
         const priceDetailsPromises = todayOffers.map(offer => fetchPriceDetails(offer._id));
         const priceDetailsResults = await Promise.all(priceDetailsPromises);
-        const priceDetailsMap = priceDetailsResults.reduce((acc, details) => ({
-          ...acc,
-          [details.id]: details,
-        }), {});
+        const priceDetailsMap = priceDetailsResults.reduce(
+          (acc, details) => ({
+            ...acc,
+            [details.id]: details,
+          }),
+          {}
+        );
         setPriceDetailsMap(priceDetailsMap);
-      };
-      fetchAllPriceDetails();
-    }
-  }, [todayOffers, fetchPriceDetails]);
 
- const handleBuyNow = (category, productId) => {
+        // Fetch reviews
+        const reviewsPromises = todayOffers.map(offer => fetchReviews(offer._id));
+        const reviewsResults = await Promise.all(reviewsPromises);
+        const reviewsMap = reviewsResults.reduce(
+          (acc, { id, reviews }) => ({
+            ...acc,
+            [id]: reviews,
+          }),
+          {}
+        );
+        setReviewsMap(reviewsMap);
+      };
+      fetchAllPriceDetailsAndReviews();
+    }
+  }, [todayOffers, fetchPriceDetails, fetchReviews]);
+
+  const handleBuyNow = (category, productId) => {
     navigate(`/shop/${category.toLowerCase()}/${productId}`);
+  };
+
+  // Calculate cumulative rating for a product
+  const calculateCumulativeRating = (reviews) => {
+    return reviews.length > 0
+      ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
+      : 0;
   };
 
   if (loading) {
@@ -132,7 +180,7 @@ const TodayOfferShow = () => {
             </h2>
             <Zap className="w-8 h-8 text-[var(--primary-mint)]" />
           </div>
-          
+
           <p className="text-xl text-gray-400 max-w-3xl mx-auto mb-8">
             Unbelievable offers that won't last long. Grab these exclusive deals before they're gone!
           </p>
@@ -161,26 +209,20 @@ const TodayOfferShow = () => {
             const discount = normalPrice > effectivePrice && effectivePrice > 0
               ? Math.round(((normalPrice - effectivePrice) / normalPrice) * 100)
               : 0;
-            const initialFilters = {};
-            offer.filters?.forEach(filter => {
-              if (filter.values && filter.values.length > 0) {
-                initialFilters[filter.name] = filter.values[0];
-              }
-            });
+            const reviews = reviewsMap[offer._id] || [];
+            const cumulativeRating = calculateCumulativeRating(reviews);
 
             return (
               <div key={offer._id} className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg overflow-hidden border border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
                 <div className="relative">
-                  <img 
-                    src={offer.images?.[0] || 'https://via.placeholder.com/400x300'} 
+                  <img
+                    src={offer.images?.[0] || 'https://via.placeholder.com/400x300'}
                     alt={offer.name}
                     className="w-full h-36 object-cover"
                   />
-                  
                   <div className="absolute top-2 left-2 bg-[var(--primary-mint)]/20 backdrop-blur-sm border border-[var(--primary-mint)]/30 text-[var(--primary-mint)] px-2 py-1 rounded text-xs font-semibold">
                     {offer.category}
                   </div>
-
                   <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">
                     -{discount}%
                   </div>
@@ -194,10 +236,15 @@ const TodayOfferShow = () => {
                   <div className="flex items-center gap-1 mb-2">
                     <div className="flex text-yellow-400">
                       {[...Array(5)].map((_, i) => (
-                        <Star key={i} className={`w-3 h-3 ${i < Math.floor(offer.rating || 0) ? 'fill-current' : ''}`} />
+                        <Star
+                          key={i}
+                          className={`w-3 h-3 ${i < Math.round(cumulativeRating) ? 'fill-current' : ''}`}
+                        />
                       ))}
                     </div>
-                    <span className="text-xs text-gray-400 ml-1">({(offer.reviews || []).length.toLocaleString()})</span>
+                    <span className="text-xs text-gray-400 ml-1">
+                      ({reviews.length.toLocaleString()})
+                    </span>
                   </div>
 
                   <div className="mb-4 flex-1">

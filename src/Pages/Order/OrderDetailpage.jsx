@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Package, Truck, CheckCircle, Clock, ArrowLeft, MapPin, Calendar, CreditCard, Phone, MessageCircle, RefreshCw, Download, ChevronRight, XCircle, AlertCircle } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const OrderDetailPage = () => {
   const { id } = useParams();
@@ -85,11 +87,11 @@ const OrderDetailPage = () => {
   // Handle cancel order submission
   const handleCancelOrder = async () => {
     if (!cancelReason) {
-      alert('Please select a reason for cancellation.');
+      toast.error('Please select a reason for cancellation.', { theme: 'dark' });
       return;
     }
     if (cancelReason === 'Other' && !otherReason.trim()) {
-      alert('Please specify the reason for cancellation.');
+      toast.error('Please specify the reason for cancellation.', { theme: 'dark' });
       return;
     }
 
@@ -104,13 +106,15 @@ const OrderDetailPage = () => {
         },
       });
       setOrder(response.data.order);
-      setShowCancelModal(false);
-      setCancelReason('');
-      setOtherReason('');
-      alert('Order cancelled successfully');
+      toast.success('Order cancelled successfully', { theme: 'dark' });
+      setTimeout(() => {
+        setShowCancelModal(false);
+        setCancelReason('');
+        setOtherReason('');
+      }, 2000); // Delay modal close by 2 seconds
     } catch (err) {
       console.error('Error cancelling order:', err);
-      alert('Failed to cancel order. Please try again later.');
+      toast.error('Failed to cancel order. Please try again later.', { theme: 'dark' });
     }
   };
 
@@ -123,7 +127,7 @@ const OrderDetailPage = () => {
 
   // Handle Return/Refund (open modal for return/refund)
   const handleReturnRefund = () => {
-    const message = `Hi, I need help with return and refund for my order ${id}.`;
+    const message = `Hi, I need help with return and refund for my order ${id}. Current status: ${order.orderStatus}.`;
     setWhatsappMessage(message);
     setShowMessageModal(true);
   };
@@ -132,13 +136,13 @@ const OrderDetailPage = () => {
   const handleCopyMessage = () => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(whatsappMessage).then(() => {
-        alert('Message copied to clipboard!');
+        toast.success('Message copied to clipboard!', { theme: 'dark' });
       }).catch((err) => {
         console.error('Failed to copy message:', err);
-        alert('Please select and copy the message manually.');
+        toast.error('Please select and copy the message manually.', { theme: 'dark' });
       });
     } else {
-      alert('Please select and copy the message manually.');
+      toast.error('Please select and copy the message manually.', { theme: 'dark' });
     }
   };
 
@@ -147,7 +151,7 @@ const OrderDetailPage = () => {
     const encodedMessage = encodeURIComponent(whatsappMessage);
     const cleanPhone = supportPhone.replace(/[^0-9]/g, '');
     if (cleanPhone.length < 10 || cleanPhone.length > 15) {
-      alert('Invalid support phone number. Please contact support via another method.');
+      toast.error('Invalid support phone number. Please contact support via another method.', { theme: 'dark' });
       setShowMessageModal(false);
       return;
     }
@@ -210,7 +214,7 @@ const OrderDetailPage = () => {
   };
 
   // Tracking steps based on orderStatus
-  const trackingSteps = [
+  const deliveryTrackingSteps = [
     {
       status: 'processing',
       label: 'Order Placed',
@@ -233,6 +237,32 @@ const OrderDetailPage = () => {
     },
   ];
 
+  const returnTrackingSteps = [
+    {
+      status: 'return accepted',
+      label: 'Return Accepted',
+      description: 'Your return request has been accepted.',
+    },
+    {
+      status: 'returned',
+      label: 'Returned',
+      description: 'The item has been returned to us.',
+    },
+  ];
+
+  const refundTrackingSteps = [
+    {
+      status: 'refund accepted',
+      label: 'Refund Accepted',
+      description: 'Your refund request has been accepted.',
+    },
+    {
+      status: 'refunded',
+      label: 'Refunded',
+      description: 'Your refund has been processed.',
+    },
+  ];
+
   const getTrackingSteps = () => {
     if (order.orderStatus === 'cancelled') {
       return [
@@ -250,8 +280,18 @@ const OrderDetailPage = () => {
       ];
     }
 
-    const currentIndex = trackingSteps.findIndex(step => step.status === order.orderStatus);
-    return trackingSteps.map((step, index) => {
+    // Determine the relevant tracking steps based on status
+    let steps = [];
+    if (['processing', 'shipped', 'out of delivery', 'delivered'].includes(order.orderStatus)) {
+      steps = [...deliveryTrackingSteps];
+    } else if (['return accepted', 'returned'].includes(order.orderStatus)) {
+      steps = [...deliveryTrackingSteps, ...returnTrackingSteps];
+    } else if (['refund accepted', 'refunded'].includes(order.orderStatus)) {
+      steps = [...deliveryTrackingSteps, ...refundTrackingSteps];
+    }
+
+    const currentIndex = steps.findIndex(step => step.status === order.orderStatus);
+    return steps.map((step, index) => {
       let date;
       switch (step.status) {
         case 'processing':
@@ -282,13 +322,41 @@ const OrderDetailPage = () => {
               ? new Date(order.createdAt).toLocaleString()
               : 'Pending';
           break;
+        case 'return accepted':
+          date = order.statusTimestamps?.returnAcceptedAt
+            ? new Date(order.statusTimestamps.returnAcceptedAt).toLocaleString()
+            : index <= currentIndex && order.createdAt
+              ? new Date(order.createdAt).toLocaleString()
+              : 'Pending';
+          break;
+        case 'returned':
+          date = order.statusTimestamps?.returnedAt
+            ? new Date(order.statusTimestamps.returnedAt).toLocaleString()
+            : index <= currentIndex && order.createdAt
+              ? new Date(order.createdAt).toLocaleString()
+              : 'Pending';
+          break;
+        case 'refund accepted':
+          date = order.statusTimestamps?.refundAcceptedAt
+            ? new Date(order.statusTimestamps.refundAcceptedAt).toLocaleString()
+            : index <= currentIndex && order.createdAt
+              ? new Date(order.createdAt).toLocaleString()
+              : 'Pending';
+          break;
+        case 'refunded':
+          date = order.statusTimestamps?.refundedAt
+            ? new Date(order.statusTimestamps.refundedAt).toLocaleString()
+            : index <= currentIndex && order.createdAt
+              ? new Date(order.createdAt).toLocaleString()
+              : 'Pending';
+          break;
         default:
           date = 'Pending';
       }
 
       return {
         ...step,
-        completed: order.orderStatus === 'delivered' ? true : index <= currentIndex,
+        completed: index <= currentIndex,
         date,
       };
     });
@@ -304,6 +372,12 @@ const OrderDetailPage = () => {
         return <Clock className="w-6 h-6" style={{ color: 'var(--primary-blue)' }} />;
       case 'cancelled':
         return <XCircle className="w-6 h-6 text-red-400" />;
+      case 'return accepted':
+      case 'returned':
+        return <Package className="w-6 h-6" style={{ color: '#f59e0b' }} />; // Orange for returns
+      case 'refund accepted':
+      case 'refunded':
+        return <CheckCircle className="w-6 h-6" style={{ color: '#f59e0b' }} />; // Amber for refunds
       default:
         return <Package className="w-6 h-6 text-gray-400" />;
     }
@@ -319,6 +393,12 @@ const OrderDetailPage = () => {
         return 'var(--primary-blue)';
       case 'cancelled':
         return '#ef4444';
+      case 'return accepted':
+      case 'returned':
+        return '#f59e0b'; // Orange
+      case 'refund accepted':
+      case 'refunded':
+        return '#f59e0b'; // Amber
       default:
         return '#6b7280';
     }
@@ -332,94 +412,211 @@ const OrderDetailPage = () => {
     navigate(`/shop/${category || 'general'}/${productId}`);
   };
 
-  const handleDownloadInvoice = () => {
-    const doc = new jsPDF();
-    let y = 20;
+const handleDownloadInvoice = () => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.width;
+  const pageHeight = doc.internal.pageSize.height;
+  let y = 20;
 
-    // Title
-    doc.setFontSize(18);
-    doc.text('Order Invoice', 20, y);
-    y += 10;
+  // Company Header Section
+  doc.setFillColor(41, 128, 185); // Professional blue
+  doc.rect(0, 0, pageWidth, 35, 'F');
+  
+  // Company Name
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.setFont(undefined, 'bold');
+  doc.text('ABINEXIS', 20, 25);
+  
+  // Invoice Title
+  doc.setFontSize(14);
+  doc.setFont(undefined, 'normal');
+  doc.text('INVOICE', pageWidth - 60, 25);
+  
+  y = 50;
+  doc.setTextColor(0, 0, 0);
 
-    // Order Details
-    doc.setFontSize(12);
-    doc.text(`Order ID: ${order._id}`, 20, y);
+  // Invoice Number and Date Section
+  doc.setFillColor(245, 245, 245);
+  doc.rect(0, y - 5, pageWidth, 25, 'F');
+  
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'bold');
+  doc.text('Invoice Details', 20, y + 5);
+  
+  doc.setFont(undefined, 'normal');
+  doc.text(`Invoice #: INV-${order._id.slice(-8).toUpperCase()}`, 20, y + 15);
+  doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString()}`, pageWidth - 80, y + 15);
+  
+  y += 35;
+
+  // Two Column Layout for Customer and Company Info
+  const leftColumn = 20;
+  const rightColumn = pageWidth / 2 + 10;
+
+  // Bill To Section
+  doc.setFont(undefined, 'bold');
+  doc.setFontSize(12);
+  doc.text('BILL TO:', leftColumn, y);
+  y += 8;
+  
+  doc.setFont(undefined, 'normal');
+  doc.setFontSize(10);
+  doc.text(`${order.personalInfo.firstName} ${order.personalInfo.lastName}`, leftColumn, y);
+  y += 5;
+  doc.text(`${order.personalInfo.email}`, leftColumn, y);
+  y += 5;
+  doc.text(`${order.shippingInfo.address}`, leftColumn, y);
+  y += 5;
+  doc.text(`${order.shippingInfo.city}, ${order.shippingInfo.state} ${order.shippingInfo.postalCode}`, leftColumn, y);
+  y += 5;
+  doc.text(`Phone: ${order.shippingInfo.phone}`, leftColumn, y);
+
+  // Company Info (Right Column)
+  let companyY = y - 33; // Reset to start of bill-to section
+  doc.setFont(undefined, 'bold');
+  doc.setFontSize(12);
+  doc.text('FROM:', rightColumn, companyY);
+  companyY += 8;
+  
+  doc.setFont(undefined, 'normal');
+  doc.setFontSize(10);
+  doc.text('Abinexis - AI Dropshipping Platform', rightColumn, companyY);
+  companyY += 5;
+  doc.text('Thiruvarur, Tamil Nadu, India', rightColumn, companyY);
+  companyY += 5;
+  doc.text('Phone: +91 8248038528', rightColumn, companyY);
+  companyY += 5;
+  doc.text('Email: abinexisr@gmail.com', rightColumn, companyY);
+
+  y += 25;
+
+  // Items Table Header
+  doc.setFillColor(52, 73, 94);
+  doc.rect(15, y, pageWidth - 30, 12, 'F');
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFont(undefined, 'bold');
+  doc.setFontSize(10);
+  doc.text('ITEM', 20, y + 8);
+  doc.text('CATEGORY', 85, y + 8);
+  doc.text('QTY', 125, y + 8);
+  doc.text('UNIT PRICE', 145, y + 8);
+  doc.text('TOTAL', 175, y + 8);
+  
+  y += 15;
+  doc.setTextColor(0, 0, 0);
+  doc.setFont(undefined, 'normal');
+
+  // Items Table Content
+  let itemTotal = 0;
+  order.orderItems.forEach((item, index) => {
+    const rowColor = index % 2 === 0 ? 250 : 255;
+    doc.setFillColor(rowColor, rowColor, rowColor);
+    doc.rect(15, y - 2, pageWidth - 30, 10, 'F');
+    
+    const lineTotal = item.price * item.quantity;
+    itemTotal += lineTotal;
+    
+    doc.setFontSize(9);
+    doc.text(item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name, 20, y + 5);
+    doc.text(item.category.length > 12 ? item.category.substring(0, 12) + '...' : item.category, 85, y + 5);
+    doc.text(item.quantity.toString(), 130, y + 5);
+    doc.text(`Rs.${item.price.toFixed(2)}`, 145, y + 5);
+    doc.text(`Rs.${lineTotal.toFixed(2)}`, 175, y + 5);
+    
+    y += 12;
+  });
+
+  // Summary Section
+  y += 10;
+  const summaryStartX = 120;
+  const summaryValueX = 175;
+  
+  // Summary background
+  doc.setFillColor(245, 245, 245);
+  doc.rect(summaryStartX - 5, y - 5, 80, 50, 'F');
+  
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'normal');
+  
+  doc.text('Subtotal:', summaryStartX, y);
+  doc.text(`Rs.${order.priceSummary.subtotal.toFixed(2)}`, summaryValueX, y);
+  y += 8;
+  
+  if (order.priceSummary.savings > 0) {
+    doc.setTextColor(46, 125, 50); // Green for savings
+    doc.text('Discount:', summaryStartX, y);
+    doc.text(`-Rs.${order.priceSummary.savings.toFixed(2)}`, summaryValueX, y);
+    doc.setTextColor(0, 0, 0);
     y += 8;
-    doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString()}`, 20, y);
-    y += 8;
-    doc.text(`Status: ${order.orderStatus}`, 20, y);
-    y += 10;
+  }
+  
+  doc.text('Shipping:', summaryStartX, y);
+  doc.text(`Rs.${order.priceSummary.shippingCost.toFixed(2)}`, summaryValueX, y);
+  y += 10;
+  
+  // Total with emphasis
+  doc.setFont(undefined, 'bold');
+  doc.setFontSize(12);
+  doc.setFillColor(52, 73, 94);
+  doc.rect(summaryStartX - 5, y - 3, 80, 12, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.text('TOTAL:', summaryStartX, y + 5);
+  doc.text(`Rs.${order.priceSummary.total.toFixed(2)}`, summaryValueX, y + 5);
+  
+  doc.setTextColor(0, 0, 0);
+  doc.setFont(undefined, 'normal');
+  y += 25;
 
-    // Customer Information
-    doc.setFontSize(14);
-    doc.text('Customer Information', 20, y);
-    y += 8;
-    doc.setFontSize(10);
-    doc.text(`Name: ${order.personalInfo.firstName} ${order.personalInfo.lastName}`, 20, y);
-    y += 6;
-    doc.text(`Email: ${order.personalInfo.email}`, 20, y);
-    y += 10;
+  // Payment Information Section
+  doc.setFillColor(245, 245, 245);
+  doc.rect(15, y, pageWidth - 30, 25, 'F');
+  
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'bold');
+  doc.text('Payment Information', 20, y + 8);
+  
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'normal');
+  doc.text(`Payment Method: ${order.paymentInfo.method}`, 20, y + 18);
+  
+  // Payment status with color coding
+  const statusText = order.isPaid ? 'PAID' : order.paymentInfo.status.toUpperCase();
+  const statusColor = order.isPaid ? [46, 125, 50] : [211, 47, 47]; // Green for paid, red for unpaid
+  doc.setTextColor(...statusColor);
+  doc.setFont(undefined, 'bold');
+  doc.text(`Status: ${statusText}`, 120, y + 18);
+  
+  if (order.isPaid && order.paymentInfo.paidAt) {
+    doc.setTextColor(0, 0, 0);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Paid on: ${new Date(order.paymentInfo.paidAt).toLocaleDateString()}`, 20, y + 28);
+  }
+  
+  y += 35;
 
-    // Shipping Information
-    doc.setFontSize(14);
-    doc.text('Shipping Information', 20, y);
-    y += 8;
-    doc.setFontSize(10);
-    doc.text(`Address: ${order.shippingInfo.address}`, 20, y);
-    y += 6;
-    doc.text(`City: ${order.shippingInfo.city}, ${order.shippingInfo.state} ${order.shippingInfo.postalCode}`, 20, y);
-    y += 6;
-    doc.text(`Phone: ${order.shippingInfo.phone}`, 20, y);
-    y += 10;
+  // Footer
+  if (y < pageHeight - 40) {
+    doc.setTextColor(128, 128, 128);
+    doc.setFontSize(8);
+    doc.text('Thank you for choosing Abinexis - Your AI-Powered Dropshipping Partner!', 20, pageHeight - 30);
+    doc.text('For questions about this invoice, please contact us at abinexisr@gmail.com', 20, pageHeight - 22);
+    
+    // Add a subtle line above footer
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, pageHeight - 35, pageWidth - 20, pageHeight - 35);
+  }
 
-    // Order Items
-    doc.setFontSize(14);
-    doc.text('Order Items', 20, y);
-    y += 8;
-    doc.setFontSize(10);
-    order.orderItems.forEach((item, index) => {
-      doc.text(`${index + 1}. ${item.name}`, 20, y);
-      y += 6;
-      doc.text(`   Category: ${item.category}`, 20, y);
-      y += 6;
-      doc.text(`   Quantity: ${item.quantity}`, 20, y);
-      y += 6;
-      doc.text(`   Price: Rs.${item.price.toFixed(2)}`, 20, y);
-      y += 8;
-    });
+  // Add border around entire document
+  doc.setDrawColor(52, 73, 94);
+  doc.setLineWidth(0.5);
+  doc.rect(10, 10, pageWidth - 20, pageHeight - 20);
 
-    // Price Summary
-    doc.setFontSize(14);
-    doc.text('Price Summary', 20, y);
-    y += 8;
-    doc.setFontSize(10);
-    doc.text(`Subtotal: Rs.${order.priceSummary.subtotal.toFixed(2)}`, 20, y);
-    y += 6;
-    if (order.priceSummary.savings > 0) {
-      doc.text(`Savings: Rs.-${order.priceSummary.savings.toFixed(2)}`, 20, y);
-      y += 6;
-    }
-    doc.text(`Shipping: Rs.${order.priceSummary.shippingCost.toFixed(2)}`, 20, y);
-    y += 6;
-    doc.text(`Total: Rs.${order.priceSummary.total.toFixed(2)}`, 20, y);
-    y += 10;
-
-    // Payment Information
-    doc.setFontSize(14);
-    doc.text('Payment Information', 20, y);
-    y += 8;
-    doc.setFontSize(10);
-    doc.text(`Method: ${order.paymentInfo.method}`, 20, y);
-    y += 6;
-    doc.text(`Status: ${order.isPaid ? 'Paid' : order.paymentInfo.status}`, 20, y);
-    if (order.isPaid && order.paymentInfo.paidAt) {
-      y += 6;
-      doc.text(`Paid on: ${new Date(order.paymentInfo.paidAt).toLocaleDateString()}`, 20, y);
-    }
-
-    // Download the PDF
-    doc.save(`order_${order._id}.pdf`);
-  };
+  // Download the PDF
+  const invoiceNumber = `INV-${order._id.slice(-8).toUpperCase()}`;
+  doc.save(`${invoiceNumber}_Invoice.pdf`);
+};
 
   if (loading) {
     return (
@@ -458,6 +655,18 @@ const OrderDetailPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
       {/* Header */}
       <div className="border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -542,6 +751,16 @@ const OrderDetailPage = () => {
                             Order delivered successfully on {new Date(order.statusTimestamps?.deliveredAt).toLocaleDateString()}
                           </p>
                         )}
+                        {step.status === 'returned' && order.orderStatus === 'returned' && (
+                          <p className="text-sm text-yellow-400 mt-2">
+                            Item returned successfully on {step.date}
+                          </p>
+                        )}
+                        {step.status === 'refunded' && order.orderStatus === 'refunded' && (
+                          <p className="text-sm text-yellow-400 mt-2">
+                            Refund processed on {step.date}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -588,7 +807,7 @@ const OrderDetailPage = () => {
                     </div>
                   </div>
                 ))}
-                {order.orderStatus !== 'cancelled' && (
+                {order.orderStatus !== 'cancelled' && order.orderStatus !== 'returned' && order.orderStatus !== 'refunded' && order.orderStatus !== 'refund accepted' && order.orderStatus !== 'return accepted' &&(
                   <div className="mt-4 space-y-3">
                     {order.orderStatus !== 'delivered' ? (
                       <button
@@ -599,18 +818,13 @@ const OrderDetailPage = () => {
                         <span>Cancel Order</span>
                       </button>
                     ) : (
-                      <div>
-                        <button
-                          onClick={handleReturnRefund}
-                          className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          <span>Request Return/Refund</span>
-                        </button>
-                        <p className="text-xs text-gray-400 mt-2">
-                          Note: You may need to copy and paste the message for new chats.
-                        </p>
-                      </div>
+                      <button
+                        onClick={handleReturnRefund}
+                        className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        <span>Request Return/Refund</span>
+                      </button>
                     )}
                   </div>
                 )}

@@ -303,7 +303,7 @@ const Header = () => {
                     <Link to="/order" className="profile-dropdown-item" onClick={() => setIsProfileOpen(false)}>My Orders</Link>
                     <Link to="/cart" className="profile-dropdown-item" onClick={() => setIsProfileOpen(false)}>My Cart</Link>
                     <Link to="/wishlist" className="profile-dropdown-item" onClick={() => setIsProfileOpen(false)}>My Wishlist</Link>
-                    <Link to="/settings" className="profile-dropdown-item" onClick={() => setIsProfileOpen(false)}>Settings</Link>
+                  
                     {isLoggedIn && (
                       <button
                         className="profile-dropdown-item w-full text-left"

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Heart, Trash2, Star, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const API_URL = 'https://abinexis-backend.onrender.com';
 
@@ -77,6 +79,7 @@ const WishlistPage = () => {
     } catch (err) {
       console.error('Error fetching wishlist:', err);
       setError(err.response?.data?.message || 'Error fetching wishlist');
+      toast.error(err.response?.data?.message || 'Error fetching wishlist', { theme: 'dark' });
       setWishlistItems([]);
     } finally {
       setLoading(false);
@@ -126,7 +129,7 @@ const WishlistPage = () => {
   const removeFromWishlist = useCallback(async (productId) => {
     const userId = getCurrentUserId();
     if (!userId) {
-      alert('Please log in to modify your wishlist');
+      toast.error('Please log in to modify your wishlist', { theme: 'dark' });
       navigate('/login');
       return;
     }
@@ -141,10 +144,10 @@ const WishlistPage = () => {
         delete newMap[productId];
         return newMap;
       });
-      alert('Product removed from wishlist!');
+      toast.success('Product removed from wishlist!', { theme: 'dark' });
     } catch (err) {
       console.error('Error removing from wishlist:', err);
-      alert(err.response?.data?.message || 'Error removing from wishlist');
+      toast.error(err.response?.data?.message || 'Error removing from wishlist', { theme: 'dark' });
     }
   }, [getCurrentUserId, navigate]);
 
@@ -162,11 +165,39 @@ const WishlistPage = () => {
   }
 
   if (error) {
-    return <div className="text-red-500 text-center mt-10">{error}</div>;
+    return (
+      <div className="text-center mt-10">
+        <p className="text-red-500">{error}</p>
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="dark"
+        />
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+      />
       {/* Header */}
       <div className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

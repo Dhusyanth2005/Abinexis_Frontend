@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Truck, Shield, Headphones, RefreshCcw, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
 const AboutSection = () => {
   const [isExpanded, setIsExpanded] = useState(false);
-    const Navigate = useNavigate();
+  const navigate = useNavigate();
+
   const handleGoBack = () => {
-    Navigate("/");
+    navigate("/");
   };
 
   const features = [
@@ -47,8 +49,6 @@ const AboutSection = () => {
             <ArrowLeft className="w-5 h-5 text-gray-400 group-hover:text-[#52B69A] transition-colors duration-300" />
             <span className="text-gray-300 group-hover:text-white transition-colors duration-300">Back</span>
           </button>
-          
-         
         </div>
       </div>
 
@@ -96,46 +96,26 @@ const AboutSection = () => {
         {/* Dropdown Container */}
         <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isExpanded ? 'max-h-[800px] opacity-100 mb-12' : 'max-h-0 opacity-0'}`}>
           <div className="bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm rounded-3xl border border-[#52B69A]/30 p-8 lg:p-12 shadow-2xl">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="bg-gray-900/50 rounded-2xl p-6 border border-gray-700/50 hover:border-[#52B69A]/50 transition-all duration-300">
-                <div className="w-12 h-12 bg-gradient-to-r from-[#52B69A] to-[#34A0A4] rounded-xl flex items-center justify-center mb-4">
-                  <span className="text-white font-bold text-xl">V</span>
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">Our Vision</h3>
-                <p className="text-gray-300">Smart, fast, global dropshipping that transforms how people discover and purchase premium products worldwide.</p>
-              </div>
-              
-              <div className="bg-gray-900/50 rounded-2xl p-6 border border-gray-700/50 hover:border-[#52B69A]/50 transition-all duration-300">
-                <div className="w-12 h-12 bg-gradient-to-r from-[#52B69A] to-[#34A0A4] rounded-xl flex items-center justify-center mb-4">
-                  <span className="text-white font-bold text-xl">M</span>
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">Our Mission</h3>
-                <p className="text-gray-300">Making modern shopping effortless through innovation, AI-powered recommendations, and exceptional customer experience.</p>
-              </div>
-              
-              <div className="bg-gray-900/50 rounded-2xl p-6 border border-gray-700/50 hover:border-[#52B69A]/50 transition-all duration-300">
-                <div className="w-12 h-12 bg-gradient-to-r from-[#52B69A] to-[#34A0A4] rounded-xl flex items-center justify-center mb-4">
-                  <span className="text-white font-bold text-xl">F</span>
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">From Our Founder</h3>
-                <p className="text-gray-300 mb-3">
-                  I'm Abinash Ramakrishnan, the founder of Abinexis. I created this company with one clear mission.
-                </p>
-                <p className="text-[#52B69A] font-semibold">
-                  "Where AI meets commerce, and growth begins."
-                </p>
-              </div>
-            </div>
-            
-            <div className="mt-8 p-6 bg-gradient-to-r from-[#52B69A]/10 to-[#34A0A4]/10 rounded-2xl border border-[#52B69A]/20">
-              <h3 className="text-xl font-bold text-white mb-4">Our Complete Story</h3>
+            <div>
+              <h3 className="text-2xl font-bold text-white mb-4">✨ From Our Founder</h3>
+              <blockquote className="text-lg text-gray-300 italic mb-4">
+                &gt; I’m Abinash Ramakrishnan, the founder of Abinexis. This isn’t just a business to me — it’s my first bold step toward building something meaningful.
+              </blockquote>
               <p className="text-gray-300 mb-4">
-                At Abinexis, we aim to blend customer satisfaction, automation, and innovation into one seamless platform. 
-                This isn't just my business — it's the beginning of my journey in building something that lasts.
+                Abinexis was born from a simple idea: to make modern commerce smarter, faster, and more accessible using AI.
               </p>
               <p className="text-gray-300">
-                We believe in the power of technology to create meaningful connections between customers and products, 
-                making every shopping experience personal, efficient, and delightful.
+                Because the future of business isn’t just about selling — it’s about creating experiences that last.
+              </p>
+              <h3 className="text-2xl font-bold text-white mt-8 mb-4">✨ Our Story</h3>
+              <blockquote className="text-lg text-gray-300 italic mb-4">
+                &gt; At Abinexis, we’re reimagining how people discover, connect, and shop.
+              </blockquote>
+              <p className="text-gray-300 mb-4">
+                By blending smart automation with human-centered design, we help brands grow faster and customers shop smarter — no warehouses, no guesswork, just results.
+              </p>
+              <p className="text-gray-300">
+                We're here to make e-commerce personal, efficient, and built for what’s next.
               </p>
             </div>
           </div>

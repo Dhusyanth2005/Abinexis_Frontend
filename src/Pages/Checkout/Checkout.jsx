@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { CreditCard, MapPin, User, ShoppingBag, Lock, Check, ChevronDown, ChevronUp, Plus, ArrowLeft } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 const API_URL = 'https://abinexis-backend.onrender.com';
 
 const CheckoutPage = () => {
@@ -297,8 +298,9 @@ const CheckoutPage = () => {
             }
           }
         );
-        alert('Order placed successfully! Pay on delivery.');
-        navigate('/order');
+        toast.success('Order placed successfully! Pay on delivery.', { theme: 'dark' });
+        setIsProcessing(false);
+        setTimeout(() => navigate('/order'), 2000);
       } else if (formData.paymentMethod === 'razorpay') {
         // For Razorpay: Fetch key and create Razorpay order
         const { data: keyData } = await axios.get(`${API_URL}/api/orders/v1/getKey`, {
@@ -323,7 +325,7 @@ const CheckoutPage = () => {
           key,
           amount: order.amount,
           currency: 'INR',
-          name: 'Your Company Name',
+          name: 'Abinexis',
           description: 'Order Payment',
           order_id: order.id,
           callback_url: `${API_URL}/api/orders/v1/paymentVerification`,
@@ -348,11 +350,12 @@ const CheckoutPage = () => {
                   }
                 }
               );
-              alert('Payment successful! Order placed.');
-              navigate('/order');
+              toast.success('Payment successful! Order placed.', { theme: 'dark' });
+              setIsProcessing(false);
+            setTimeout(() => navigate('/order'), 2000);
             } catch (err) {
               console.error('Error creating order after payment:', err);
-              alert(err.response?.data?.message || 'Error creating order after payment');
+            toast.error(err.response?.data?.message || 'Error creating order after payment', { theme: 'dark' });
             }
           },
           prefill: {
@@ -372,10 +375,8 @@ const CheckoutPage = () => {
       }
     } catch (err) {
       console.error('Error placing order:', err);
-      alert(err.response?.data?.message || 'Error placing order');
-    } finally {
-      setIsProcessing(false);
-    }
+    toast.error(err.response?.data?.message || 'Error placing order', { theme: 'dark' });
+    } 
   };
 
   const steps = [
@@ -386,24 +387,20 @@ const CheckoutPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
+      <ToastContainer
+      position="top-right"
+      autoClose={3000}
+      hideProgressBar={false}
+      newestOnTop={false}
+      closeOnClick
+      rtl={false}
+      pauseOnFocusLoss
+      draggable
+      pauseOnHover
+      theme="dark"
+    />
       <style jsx>{`
-        :root {
-          --primary-light-green: #D9ED92;
-          --primary-green: #B5E48C;
-          --primary-sage: #99D98C;
-          --primary-teal: #76C893;
-          --primary-mint: #52B69A;
-          --primary-turquoise: #34A0A4;
-          --primary-blue: #168AAD;
-          --primary-ocean: #1A759F;
-          --primary-navy: #1E6091;
-          --primary-deep-blue: #184E77;
-          
-          --brand-primary: #52B69A;
-          --brand-secondary: #34A0A4;
-          --brand-accent: #168AAD;
-        }
-        
+       
         .brand-primary { color: var(--brand-primary); }
         .bg-brand-primary { background-color: var(--brand-primary); }
         .bg-brand-primary-hover:hover { background-color: var(--primary-turquoise); }
@@ -440,7 +437,9 @@ const CheckoutPage = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--brand-primary)]"></div>
         </div>
       ) : loading ? (
-        <div className="flex justify-center items-center h-[calc(100vh-64px)]">Loading...</div>
+       <div className="flex justify-center items-center h-[calc(100vh-64px)] bg-gray-950">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--brand-primary)]"></div>
+        </div>
       ) : error ? (
         <div className="text-red-500 text-center mt-10">{error}</div>
       ) : (
