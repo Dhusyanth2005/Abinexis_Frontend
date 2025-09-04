@@ -7,9 +7,9 @@ const API_URL = 'https://abinexis-backend.onrender.com';
 
 const TodayOfferShow = () => {
   const [timeLeft, setTimeLeft] = useState({
-    hours: 23,
-    minutes: 45,
-    seconds: 30,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
   });
   const [todayOffers, setTodayOffers] = useState([]);
   const [priceDetailsMap, setPriceDetailsMap] = useState({});
@@ -18,23 +18,47 @@ const TodayOfferShow = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Countdown timer effect
+  // Calculate time remaining until midnight
+  const calculateTimeLeft = useCallback(() => {
+    const now = new Date();
+    const midnight = new Date();
+    midnight.setHours(24, 0, 0, 0); // Set to next midnight
+    
+    const difference = midnight.getTime() - now.getTime();
+    
+    if (difference > 0) {
+      const hours = Math.floor(difference / (1000 * 60 * 60));
+      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+      
+      return { hours, minutes, seconds };
+    }
+    
+    // If we've reached midnight, reset to 24 hours
+    return { hours: 24, minutes: 0, seconds: 0 };
+  }, []);
+
+  // Initialize countdown with real time
+  useEffect(() => {
+    setTimeLeft(calculateTimeLeft());
+  }, [calculateTimeLeft]);
+
+  // Real-time countdown timer effect
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev.seconds > 0) {
-          return { ...prev, seconds: prev.seconds - 1 };
-        } else if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        } else if (prev.hours > 0) {
-          return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        }
-        return prev;
-      });
+      const newTimeLeft = calculateTimeLeft();
+      setTimeLeft(newTimeLeft);
+      
+      // Optional: Reset offers at midnight (you can customize this logic)
+      if (newTimeLeft.hours === 24 && newTimeLeft.minutes === 0 && newTimeLeft.seconds === 0) {
+        console.log('New day started! Refreshing offers...');
+        // Optionally refresh offers here
+        // fetchTodayOffers();
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [calculateTimeLeft]);
 
   // Fetch today's offers from homepage
   const fetchTodayOffers = useCallback(async () => {
@@ -198,6 +222,11 @@ const TodayOfferShow = () => {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Add current time for reference (optional - remove if not needed) */}
+          <div className="text-sm text-gray-500 mb-4">
+            Current time: {new Date().toLocaleTimeString()}
           </div>
         </div>
 

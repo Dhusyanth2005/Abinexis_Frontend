@@ -321,7 +321,7 @@ const HeroSection = () => {
               }`}>
                 {slides.length > 0 && (
                   <>
-                    <div className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 rounded-full text-emerald-400 font-semibold text-sm mb-4 backdrop-blur-sm">
+                     <div className="hidden md:inline-flex items-center px-3 py-1 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 rounded-full text-emerald-400 font-semibold text-sm mb-4 backdrop-blur-sm">
                       <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse mr-2"></span>
                       {slides[currentSlide].badge}
                     </div>
@@ -400,17 +400,20 @@ const HeroSection = () => {
             </div>
           )}
 
-          <div className="absolute top-1/4 left-8 animate-float">
+          {/* Zap icon - Hidden on mobile (sm and below) */}
+          <div className="absolute top-1/4 left-8 animate-float hidden md:block">
             <div className="w-12 h-12 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-emerald-500/30">
               <Zap className="w-6 h-6 text-emerald-400" />
             </div>
           </div>
           
-          <div className="absolute top-1/3 right-8 animate-float-delay">
+          {/* Heart icon - Hidden on mobile (sm and below) */}
+          <div className="absolute top-1/3 right-8 animate-float-delay hidden md:block">
             <div className="w-10 h-10 bg-gradient-to-br from-cyan-500/20 to-emerald-500/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-cyan-500/30">
               <Heart className="w-5 h-5 text-cyan-400" />
             </div>
           </div>
+        
         </section>
 
         {cards.length > 0 && (
