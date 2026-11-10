@@ -12,7 +12,7 @@ const API_URL = 'https://abinexis-backend.onrender.com';
 const getFilterStyles = () => ({
   component: 'button',
   className: (value, selected) =>
-    `px-4 py-2 border rounded-lg transition-colors ${
+    `px-4 py-2 border rounded-lg transition-colors max-w-full break-words text-left ${
       selected === value
         ? 'border-[var(--brand-primary)] bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]'
         : 'border-gray-600 hover:border-gray-500 text-gray-300'
@@ -45,7 +45,19 @@ const ProductPage = () => {
   const [startX, setStartX] = useState(0);
   const [currentTranslate, setCurrentTranslate] = useState(0);
   const swiperRef = useRef(null);
+  const thumbnailRefs = useRef([]);
   const lastUpdateTime = useRef(0);
+
+  // Auto-scroll the thumbnail strip to keep selected image centered
+  useEffect(() => {
+    if (thumbnailRefs.current && thumbnailRefs.current[selectedImage]) {
+      thumbnailRefs.current[selectedImage].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
+    }
+  }, [selectedImage]);
 
   // Add this function in the component body, before the return statement
 const handleShareProduct = async () => {
@@ -579,7 +591,7 @@ const handleShareProduct = async () => {
         <meta property="og:type" content="product" />
         <meta name="robots" content="index, follow" />
       </Helmet>
-      <div className="bg-gray-950 min-h-screen text-white pt-16 md:pt-30 pb-20 md:pb-0">
+      <div className="bg-gray-950 min-h-screen text-white pt-16 md:pt-30 pb-20 md:pb-0 overflow-x-hidden w-full">
         <ToastContainer
           position="top-right"
           autoClose={2500}
@@ -621,12 +633,16 @@ const handleShareProduct = async () => {
 
         <div className="max-w-6xl mx-auto px-4 py-4 md:py-8">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-            <div className="space-y-4">
-              <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800 select-none" style={{ touchAction: 'pan-y' }}>
+            <div className="space-y-4 min-w-0">
+              <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-900 border border-gray-800/80 select-none" style={{ touchAction: 'pan-y' }}>
                 <div
                   ref={swiperRef}
-                  className="flex w-full h-full transition-transform duration-300 ease-out will-change-transform"
-                  style={{ transform: `translateX(-${selectedImage * 100}%)` }}
+                  className={`flex w-full h-full will-change-transform ${isDragging ? '' : 'transition-transform duration-300 ease-out'}`}
+                  style={{
+                    transform: isDragging
+                      ? `translateX(calc(-${selectedImage * 100}% + ${currentTranslate}px))`
+                      : `translateX(-${selectedImage * 100}%)`,
+                  }}
                   onMouseDown={handleDragStart}
                   onMouseMove={handleDragMove}
                   onMouseUp={handleDragEnd}
@@ -636,12 +652,11 @@ const handleShareProduct = async () => {
                   onTouchEnd={handleDragEnd}
                 >
                   {productImages.map((image, index) => (
-                    <div key={index} className="min-w-full h-full">
+                    <div key={index} className="w-full min-w-full h-full shrink-0 flex items-center justify-center bg-gray-900">
                       <img
                         src={image || 'https://via.placeholder.com/600'}
                         alt={`${product.name} ${index + 1}`}
-                        className="w-full h-full object-cover select-none"
-                        style={{ transform: `translateX(${isDragging ? currentTranslate + 'px' : '0'})` }}
+                        className="w-full h-full object-contain select-none pointer-events-none"
                         draggable="false"
                       />
                     </div>
@@ -669,36 +684,40 @@ const handleShareProduct = async () => {
                   />
                 </button>
                 {productImages.length > 1 && (
-                  <div className="md:hidden absolute bottom-3 right-3 px-2 py-0.5 rounded-full bg-black/60 text-[11px] text-white/90 z-10">
+                  <div className="md:hidden absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-sm text-xs font-medium text-white/95 border border-white/10 z-10 shadow-lg">
                     {selectedImage + 1} / {productImages.length}
                   </div>
                 )}
               </div>
 
-              <div className="flex space-x-2 md:space-x-3 overflow-x-auto pb-1 scrollbar-none">
+              <div
+                className="flex space-x-2 md:space-x-3 overflow-x-auto pb-1 scrollbar-none touch-pan-x"
+                style={{ WebkitOverflowScrolling: 'touch' }}
+              >
                 {productImages.map((image, index) => (
                   <button
                     key={index}
+                    ref={el => (thumbnailRefs.current[index] = el)}
                     onClick={() => setSelectedImage(index)}
-                    className={`w-14 h-14 md:w-20 md:h-20 shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
+                    className={`w-14 h-14 md:w-20 md:h-20 shrink-0 rounded-lg overflow-hidden border-2 transition-all bg-gray-900 ${
                       selectedImage === index
-                        ? 'border-[var(--brand-primary)]'
-                        : 'border-gray-700 hover:border-gray-600'
+                        ? 'border-[var(--brand-primary)] opacity-100 scale-105'
+                        : 'border-gray-700 hover:border-gray-600 opacity-70 hover:opacity-100'
                     }`}
                   >
                     <img
                       src={image || 'https://via.placeholder.com/200'}
                       alt={`Product ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain p-0.5"
                     />
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 min-w-0">
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">{product.name}</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 break-words">{product.name}</h1>
                 <div className="flex flex-wrap items-center gap-2 md:gap-4 mb-4">
                   <div className="flex items-center space-x-1">
                     {[...Array(5)].map((_, i) => (
@@ -718,7 +737,7 @@ const handleShareProduct = async () => {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-wrap items-baseline gap-3 md:gap-4">
                 <span className="text-2xl md:text-3xl font-bold text-white">
                   ₹{effectivePrice || 0}
                 </span>
@@ -741,7 +760,7 @@ const handleShareProduct = async () => {
                       <h3 className="text-lg font-semibold mb-3">
                         {filter.name.charAt(0).toUpperCase() + filter.name.slice(1)}: {selectedFilters[filter.name] || filter.values[0]}
                       </h3>
-                      <div className="flex space-x-2 flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2">
                         {filter.values.map(value => {
                           const filterStyle = getFilterStyles();
                           return (
@@ -866,12 +885,12 @@ const handleShareProduct = async () => {
 
             <div className="min-h-[300px]">
               {activeTab === 'description' && (
-                <div className="space-y-4 text-gray-300">
-                  <p>{product.description || 'No description available.'}</p>
+                <div className="space-y-4 text-gray-300 break-words">
+                  <p className="break-words whitespace-pre-line">{product.description || 'No description available.'}</p>
                   {product.features?.length > 0 && (
                     <ul className="list-disc list-inside space-y-2 text-gray-400">
                       {product.features.map((feature, index) => (
-                        <li key={index}>{feature}</li>
+                        <li key={index} className="break-words">{feature}</li>
                       ))}
                     </ul>
                   )}
@@ -1004,7 +1023,7 @@ const handleShareProduct = async () => {
                               </div>
                             )}
                           </div>
-                          <p className="text-gray-300 mb-2">{review.comment}</p>
+                          <p className="text-gray-300 mb-2 break-words">{review.comment}</p>
                           {review.images && review.images.length > 0 && (
                             <div className="flex space-x-2 flex-wrap gap-2">
                               {review.images.map((image, index) => (
@@ -1072,18 +1091,18 @@ const handleShareProduct = async () => {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       </div>
-                      <h3 className="text-white font-medium mb-1">{prod.name}</h3>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-[var(--brand-primary)] font-semibold">
+                      <h3 className="text-white font-medium mb-1 line-clamp-2 break-words text-xs sm:text-base">{prod.name}</h3>
+                      <div className="flex flex-wrap items-baseline gap-1.5 sm:gap-2">
+                        <span className="text-[var(--brand-primary)] font-semibold text-xs sm:text-base">
                           ₹{effectivePrice}
                         </span>
                         {discount > 0 && (
-                          <span className="text-gray-400 line-through text-sm">
+                          <span className="text-gray-400 line-through text-[11px] sm:text-sm">
                             ₹{normalPrice}
                           </span>
                         )}
                         {discount > 0 && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-green-900 text-green-300">
+                          <span className="text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full bg-green-900 text-green-300">
                             {discount}% OFF
                           </span>
                         )}
