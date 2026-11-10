@@ -96,10 +96,13 @@ const handleShareProduct = async () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Reset reviews when productid changes to prevent stale data
+  // Scroll to top and reset state when productid changes
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     setReviews([]);
     setLoading(true);
+    setSelectedImage(0);
+    setQuantity(1);
   }, [productid]);
 
   // Fetch product details and wishlist status
@@ -460,7 +463,9 @@ const handleShareProduct = async () => {
 
   const handleDragStart = (e) => {
     if (!swiperRef.current) return;
-    e.preventDefault();
+    if (e.type !== 'touchstart') {
+      e.preventDefault();
+    }
     setIsDragging(true);
     setStartX(e.type === 'mousedown' ? e.pageX : e.touches[0].pageX);
     setCurrentTranslate(0);
@@ -574,7 +579,7 @@ const handleShareProduct = async () => {
         <meta property="og:type" content="product" />
         <meta name="robots" content="index, follow" />
       </Helmet>
-      <div className="bg-gray-950 min-h-screen text-white pt-30">
+      <div className="bg-gray-950 min-h-screen text-white pt-16 md:pt-30 pb-20 md:pb-0">
         <ToastContainer
           position="top-right"
           autoClose={2500}
@@ -587,9 +592,10 @@ const handleShareProduct = async () => {
           pauseOnHover
           theme="dark"
         />
-        <nav className="px-4 py-3 border-b border-gray-800">
+        {/* Navigation path / breadcrumbs: hidden on mobile, visible on desktop */}
+        <nav className="hidden md:block px-4 py-3 border-b border-gray-800">
           <div className="max-w-7xl mx-auto">
-            <div className="flex items-center space-x-2 text-sm text-gray-400">
+            <div className="flex items-center space-x-2 text-xs md:text-sm text-gray-400 overflow-x-auto whitespace-nowrap scrollbar-none">
               <span
                 onClick={() => navigate('/')}
                 className="cursor-pointer hover:text-white transition-colors"
@@ -613,8 +619,8 @@ const handleShareProduct = async () => {
           </div>
         </nav>
 
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="grid lg:grid-cols-2 gap-12">
+        <div className="max-w-6xl mx-auto px-4 py-4 md:py-8">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
             <div className="space-y-4">
               <div className="relative aspect-square rounded-2xl overflow-hidden bg-gray-800 select-none" style={{ touchAction: 'pan-y' }}>
                 <div
@@ -643,33 +649,38 @@ const handleShareProduct = async () => {
                 </div>
                 <button
                   onClick={handlePrevImage}
-                  className="absolute top-1/2 left-4 transform -translate-y-1/2 p-2 rounded-full bg-gray-900/80 backdrop-blur-sm hover:bg-gray-800 transition-colors"
+                  className="absolute top-1/2 left-2 md:left-4 transform -translate-y-1/2 p-1.5 md:p-2 rounded-full bg-gray-900/80 backdrop-blur-sm hover:bg-gray-800 transition-colors z-10"
                 >
-                  <ChevronLeft size={24} className="text-gray-100" />
+                  <ChevronLeft size={20} className="md:w-6 md:h-6 text-gray-100" />
                 </button>
                 <button
                   onClick={handleNextImage}
-                  className="absolute top-1/2 right-4 transform -translate-y-1/2 p-2 rounded-full bg-gray-900/80 backdrop-blur-sm hover:bg-gray-800 transition-colors"
+                  className="absolute top-1/2 right-2 md:right-4 transform -translate-y-1/2 p-1.5 md:p-2 rounded-full bg-gray-900/80 backdrop-blur-sm hover:bg-gray-800 transition-colors z-10"
                 >
-                  <ChevronRight size={24} className="text-gray-100" />
+                  <ChevronRight size={20} className="md:w-6 md:h-6 text-gray-100" />
                 </button>
                 <button
                   onClick={handleToggleWishlist}
-                  className="absolute top-4 right-4 p-2 rounded-full bg-gray-900/80 backdrop-blur-sm hover:bg-gray-800 transition-colors"
+                  className="absolute top-4 right-4 p-2 rounded-full bg-gray-900/80 backdrop-blur-sm hover:bg-gray-800 transition-colors z-10"
                 >
                   <Heart
                     size={24}
                     className={`${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'} hover:text-red-500`}
                   />
                 </button>
+                {productImages.length > 1 && (
+                  <div className="md:hidden absolute bottom-3 right-3 px-2 py-0.5 rounded-full bg-black/60 text-[11px] text-white/90 z-10">
+                    {selectedImage + 1} / {productImages.length}
+                  </div>
+                )}
               </div>
 
-              <div className="flex space-x-3">
+              <div className="flex space-x-2 md:space-x-3 overflow-x-auto pb-1 scrollbar-none">
                 {productImages.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
-                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
+                    className={`w-14 h-14 md:w-20 md:h-20 shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
                       selectedImage === index
                         ? 'border-[var(--brand-primary)]'
                         : 'border-gray-700 hover:border-gray-600'
@@ -687,8 +698,8 @@ const handleShareProduct = async () => {
 
             <div className="space-y-6">
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2">{product.name}</h1>
-                <div className="flex items-center space-x-4 mb-4">
+                <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">{product.name}</h1>
+                <div className="flex flex-wrap items-center gap-2 md:gap-4 mb-4">
                   <div className="flex items-center space-x-1">
                     {[...Array(5)].map((_, i) => (
                       <Star
@@ -708,7 +719,7 @@ const handleShareProduct = async () => {
               </div>
 
               <div className="flex items-center space-x-4">
-                <span className="text-3xl font-bold text-white">
+                <span className="text-2xl md:text-3xl font-bold text-white">
                   ₹{effectivePrice || 0}
                 </span>
                 {discount > 0 && (
@@ -818,7 +829,7 @@ const handleShareProduct = async () => {
                 </button>
 
               <div className="border-t border-gray-800 pt-6">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   <div className="text-center">
                     <Truck size={24} className="mx-auto mb-2 text-[var(--brand-primary)]" />
                     <p className="text-sm text-gray-400">Free Shipping</p>
@@ -837,7 +848,7 @@ const handleShareProduct = async () => {
           </div>
 
           <div className="mt-16 border-t border-gray-800 pt-8">
-            <div className="flex space-x-8 mb-8">
+            <div className="flex space-x-6 sm:space-x-8 mb-8 overflow-x-auto whitespace-nowrap scrollbar-none">
               {['description', 'reviews', 'shipping'].map(tab => (
                 <button
                   key={tab}
@@ -1035,7 +1046,7 @@ const handleShareProduct = async () => {
 
           <div className="mt-16 border-t border-gray-800 pt-8">
             <h2 className="text-2xl font-bold text-white mb-8">You Might Also Like</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
               {relatedProducts.length > 0 ? (
                 relatedProducts.map(prod => {
                   const priceDetails = relatedPriceDetailsMap[prod._id] || {};
@@ -1049,7 +1060,10 @@ const handleShareProduct = async () => {
                     <div
                       key={prod._id}
                       className="group cursor-pointer"
-                      onClick={() => navigate(`/shop/${product.category}/${prod._id}`)}
+                      onClick={() => {
+                        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                        navigate(`/shop/${product.category}/${prod._id}`);
+                      }}
                     >
                       <div className="aspect-square rounded-lg overflow-hidden bg-gray-800 mb-3">
                         <img
@@ -1083,6 +1097,36 @@ const handleShareProduct = async () => {
             </div>
           </div>
         </div>
+
+        {/* Mobile Sticky Action Bar - Mobile Only (Hidden on md/lg desktop) */}
+        {product.countInStock > 0 && (
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-gray-900/95 backdrop-blur-md border-t border-gray-800 px-4 py-2.5 shadow-2xl flex items-center justify-between gap-3">
+            <div>
+              <span className="text-[10px] text-gray-400 uppercase tracking-wider block font-medium">Price</span>
+              <span className="text-lg font-bold text-white">₹{(effectivePrice || 0) * quantity}</span>
+            </div>
+            <div className="flex items-center gap-2 flex-1 max-w-[230px] justify-end">
+              <button
+                onClick={handleAddToCart}
+                disabled={isAddingToCart}
+                className="p-2.5 rounded-lg border border-[var(--brand-primary)] text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/10 active:scale-95 transition-all shrink-0"
+                aria-label="Add to cart"
+              >
+                {isAddingToCart ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--brand-primary)]"></div>
+                ) : (
+                  <ShoppingCart size={18} />
+                )}
+              </button>
+              <button
+                onClick={handleBuyNow}
+                className="flex-1 py-2.5 px-3 bg-[var(--brand-primary)] text-gray-900 rounded-lg font-bold text-xs hover:bg-[var(--primary-mint)] active:scale-95 transition-all shadow-md text-center"
+              >
+                Buy Now
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
